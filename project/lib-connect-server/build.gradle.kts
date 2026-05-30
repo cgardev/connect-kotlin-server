@@ -51,8 +51,6 @@ configurations.all {
     }
 }
 
-// ----- Publishing -------------------------------------------------------------------------
-
 java {
     withSourcesJar()
     withJavadocJar()

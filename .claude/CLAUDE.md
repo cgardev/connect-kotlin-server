@@ -9,7 +9,6 @@ This workspace is built on a base image that includes:
 * **Languages & Runtimes:** Kotlin (JVM, Gradle toolchain), Node.js (via nvm) for TypeScript
 * **Package Managers:** Gradle, pnpm
 * **Version Control:** git
-* **AI Assistants:** Claude Code
 
 **Persistent Storage**
 The directory `/workspace` is backed by a persistent Docker volume. All project files, scripts, and data stored here

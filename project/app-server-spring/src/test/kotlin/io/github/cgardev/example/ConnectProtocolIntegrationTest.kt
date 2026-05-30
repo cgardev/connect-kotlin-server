@@ -146,8 +146,6 @@ class ConnectProtocolIntegrationTest {
         assertEquals("unimplemented", mapper.readTree(response.body()).get("code").asText())
     }
 
-    // ----- envelope helpers --------------------------------------------------
-
     private data class Frame(val flags: Int, val data: ByteArray)
 
     private fun envelope(flags: Int, data: ByteArray): ByteArray {

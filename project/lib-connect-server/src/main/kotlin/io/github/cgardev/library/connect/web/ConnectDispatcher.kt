@@ -103,8 +103,6 @@ class ConnectDispatcher(
         }
     }
 
-    // ----- Connect unary (non-enveloped POST) ------------------------------------------------
-
     private fun handleConnectUnary(
         request: ConnectHttpRequest,
         response: ConnectHttpResponse,
@@ -188,8 +186,6 @@ class ConnectDispatcher(
         result.trailers?.let { writeUnaryTrailers(response, it) }
         response.output.write(payload)
     }
-
-    // ----- Enveloped (Connect streaming + gRPC-Web) ------------------------------------------
 
     private fun handleEnveloped(
         request: ConnectHttpRequest,
@@ -291,8 +287,6 @@ class ConnectDispatcher(
         return codec.deserialize(bytes, entry.requestPrototype)
     }
 
-    // ----- Wire writers ----------------------------------------------------------------------
-
     private fun writeMessageFrame(out: OutputStream, payload: ByteArray, compression: Compression?) {
         if (compression != null && payload.size >= config.compressMinBytes) {
             Envelope.writeFrame(out, Envelope.FLAG_COMPRESSED, compression.compress(payload))
@@ -356,8 +350,6 @@ class ConnectDispatcher(
 
     private fun groupedTrailers(trailers: Metadata): Map<String, List<String>> =
         trailerHeaders(trailers).groupBy({ it.first }, { it.second })
-
-    // ----- Request helpers -------------------------------------------------------------------
 
     private fun readBody(request: ConnectHttpRequest): ByteArray {
         val body = request.body()
