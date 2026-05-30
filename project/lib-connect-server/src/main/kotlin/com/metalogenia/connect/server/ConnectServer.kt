@@ -1,0 +1,66 @@
+package com.metalogenia.connect.server
+
+import com.metalogenia.connect.server.channel.InProcessGrpcChannel
+import com.metalogenia.connect.server.codec.CodecRegistry
+import com.metalogenia.connect.server.codec.CompressionRegistry
+import com.metalogenia.connect.server.codec.JsonCodec
+import com.metalogenia.connect.server.codec.ProtoCodec
+import com.metalogenia.connect.server.config.ConnectServerConfig
+import com.metalogenia.connect.server.invoke.InProcessInvoker
+import com.metalogenia.connect.server.netty.ConnectNettyServer
+import com.metalogenia.connect.server.registry.ConnectMethodRegistry
+import com.metalogenia.connect.server.web.ConnectCors
+import com.metalogenia.connect.server.web.ConnectDispatcher
+import com.metalogenia.connect.server.web.ConnectHttpHandler
+import com.metalogenia.connect.server.web.ConnectWire
+import io.grpc.BindableService
+import io.grpc.ServerInterceptor
+
+/**
+ * Framework-agnostic entry point to the Connect server. Given a set of gRPC
+ * [BindableService]s (and optional [ServerInterceptor]s), it hosts them on an
+ * in-process gRPC channel (preserving the interceptor pipeline) and serves them
+ * over an embedded Netty HTTP server speaking the Connect, Connect-streaming and
+ * gRPC-Web protocols. Call [start] before serving and [close] on shutdown.
+ *
+ * This class — and the entire library — has no dependency on Spring or any other
+ * application container.
+ */
+class ConnectServer(
+    services: List<BindableService>,
+    interceptors: List<ServerInterceptor> = emptyList(),
+    val config: ConnectServerConfig = ConnectServerConfig(),
+) : AutoCloseable {
+
+    private val channel = InProcessGrpcChannel(services, interceptors, config.shutdownGraceMillis)
+    val registry: ConnectMethodRegistry = ConnectMethodRegistry(services)
+
+    private val httpHandler: ConnectHttpHandler = run {
+        val invoker = InProcessInvoker { channel.channel }
+        val codecs = CodecRegistry(ProtoCodec, JsonCodec(registry.typeRegistry))
+        val dispatcher = ConnectDispatcher(registry, invoker, codecs, CompressionRegistry(), ConnectWire(registry.typeRegistry), config)
+        ConnectHttpHandler(dispatcher, ConnectCors(config.cors))
+    }
+
+    private val nettyServer = ConnectNettyServer(
+        handler = httpHandler,
+        host = config.host,
+        port = config.port,
+        maxContentLength = config.readMaxBytes.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
+        shutdownGraceMillis = config.shutdownGraceMillis,
+    )
+
+    /** The port the server is listening on; valid after [start] (resolves ephemeral port 0). */
+    val boundPort: Int get() = nettyServer.boundPort
+
+    /** Starts the in-process gRPC channel and binds the Netty HTTP server. */
+    fun start() {
+        channel.start()
+        nettyServer.start()
+    }
+
+    override fun close() {
+        runCatching { nettyServer.close() }
+        channel.close()
+    }
+}

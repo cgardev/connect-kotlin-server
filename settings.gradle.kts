@@ -12,3 +12,6 @@ includeBuild("build-logic")
 
 // Apps
 include("project:app-server-spring")
+
+// Libs
+include("project:lib-connect-server")

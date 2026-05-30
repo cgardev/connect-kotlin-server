@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package connect.demo.v1;
+
+option java_multiple_files = true;
+option java_package = "com.metalogenia.connect.demo.v1";
+option java_outer_classname = "EchoProto";
+
+// A small demonstration service exercising the Connect server layer: a plain
+// unary call, an idempotent unary call (GET-eligible), a server-streaming call
+// and a call that always fails (to exercise error mapping with details).
+service EchoService {
+  rpc Echo(EchoRequest) returns (EchoResponse);
+
+  rpc GetServerInfo(GetServerInfoRequest) returns (ServerInfo) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  rpc Count(CountRequest) returns (stream CountResponse);
+
+  rpc Fail(FailRequest) returns (EchoResponse);
+}
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string message = 1;
+}
+
+message GetServerInfoRequest {}
+
+message ServerInfo {
+  string name = 1;
+  string version = 2;
+}
+
+message CountRequest {
+  int32 to = 1;
+}
+
+message CountResponse {
+  int32 number = 1;
+}
+
+message FailRequest {
+  string reason = 1;
+}
