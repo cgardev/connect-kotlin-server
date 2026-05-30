@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createClient, ConnectError, Code } from "@connectrpc/connect";
 import { connectTransport, grpcWebTransport } from "../transport.js";
-import { EchoService } from "@gen/cgardev/example/v1/echo_pb";
+import { EchoService, EchoKotlinService } from "@gen/cgardev/example/v1/echo_pb";
 
 const protocols = [
   { name: "connect", make: connectTransport },
@@ -13,6 +13,13 @@ const formats = [
   { name: "json", useBinaryFormat: false },
 ];
 
+// The Java (EchoService) and Kotlin coroutine (EchoKotlinService) implementations
+// must be indistinguishable on the wire.
+const services = [
+  { name: "EchoService", desc: EchoService },
+  { name: "EchoKotlinService", desc: EchoKotlinService },
+];
+
 // Exercise every protocol in both proto-binary and JSON encodings.
 const matrix = protocols.flatMap((protocol) =>
   formats.map((format) => ({
@@ -21,9 +28,10 @@ const matrix = protocols.flatMap((protocol) =>
   })),
 );
 
-for (const variant of matrix) {
-  describe(`EchoService over ${variant.name}`, () => {
-    const client = createClient(EchoService, variant.transport);
+for (const service of services) {
+  for (const variant of matrix) {
+    describe(`${service.name} over ${variant.name}`, () => {
+      const client = createClient(service.desc, variant.transport);
 
     it("unary Echo", async () => {
       const response = await client.echo({ message: "hi" });
@@ -55,5 +63,6 @@ for (const variant of matrix) {
         expect(connectError.rawMessage).toContain("kaboom");
       }
     });
-  });
+    });
+  }
 }

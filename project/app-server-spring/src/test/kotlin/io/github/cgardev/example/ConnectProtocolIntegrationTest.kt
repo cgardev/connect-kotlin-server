@@ -13,7 +13,8 @@ import io.github.cgardev.library.connect.ConnectServer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import java.io.ByteArrayInputStream
@@ -26,6 +27,16 @@ import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
+
+/**
+ * Runs every assertion against both demo services — `EchoService` (Java API) and
+ * `EchoKotlinService` (Kotlin coroutine API) — to prove they behave identically.
+ */
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+@ParameterizedTest(name = "{0}")
+@ValueSource(strings = ["EchoService", "EchoKotlinService"])
+annotation class BothServices
 
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
@@ -41,38 +52,39 @@ class ConnectProtocolIntegrationTest {
     private val client: HttpClient = HttpClient.newHttpClient()
     private val mapper = ObjectMapper()
 
-    private fun url(method: String) = "http://localhost:$port/cgardev.example.v1.EchoService/$method"
+    private fun url(service: String, method: String) =
+        "http://localhost:$port/cgardev.example.v1.$service/$method"
 
-    private fun post(method: String, contentType: String, body: ByteArray): HttpResponse<ByteArray> {
-        val request = HttpRequest.newBuilder(URI.create(url(method)))
+    private fun post(service: String, method: String, contentType: String, body: ByteArray): HttpResponse<ByteArray> {
+        val request = HttpRequest.newBuilder(URI.create(url(service, method)))
             .header("Content-Type", contentType)
             .POST(HttpRequest.BodyPublishers.ofByteArray(body))
             .build()
         return client.send(request, HttpResponse.BodyHandlers.ofByteArray())
     }
 
-    @Test
-    fun `connect unary over proto`() {
+    @BothServices
+    fun `connect unary over proto`(service: String) {
         val body = EchoRequest.newBuilder().setMessage("hello").build().toByteArray()
-        val response = post("Echo", "application/proto", body)
+        val response = post(service, "Echo", "application/proto", body)
 
         assertEquals(200, response.statusCode())
         assertTrue(response.headers().firstValue("content-type").get().startsWith("application/proto"))
         assertEquals("echo: hello", EchoResponse.parseFrom(response.body()).message)
     }
 
-    @Test
-    fun `connect unary over json`() {
-        val response = post("Echo", "application/json", """{"message":"world"}""".toByteArray())
+    @BothServices
+    fun `connect unary over json`(service: String) {
+        val response = post(service, "Echo", "application/json", """{"message":"world"}""".toByteArray())
 
         assertEquals(200, response.statusCode())
         assertTrue(response.headers().firstValue("content-type").get().startsWith("application/json"))
         assertEquals("echo: world", mapper.readTree(response.body()).get("message").asText())
     }
 
-    @Test
-    fun `connect unary error carries code message and details`() {
-        val response = post("Fail", "application/json", """{"reason":"boom"}""".toByteArray())
+    @BothServices
+    fun `connect unary error carries code message and details`(service: String) {
+        val response = post(service, "Fail", "application/json", """{"reason":"boom"}""".toByteArray())
 
         assertEquals(400, response.statusCode())
         assertTrue(response.headers().firstValue("content-type").get().startsWith("application/json"))
@@ -84,9 +96,9 @@ class ConnectProtocolIntegrationTest {
         assertTrue(detail.has("value"))
     }
 
-    @Test
-    fun `idempotent unary over GET`() {
-        val request = HttpRequest.newBuilder(URI.create(url("GetServerInfo") + "?encoding=json&message=%7B%7D"))
+    @BothServices
+    fun `idempotent unary over GET`(service: String) {
+        val request = HttpRequest.newBuilder(URI.create(url(service, "GetServerInfo") + "?encoding=json&message=%7B%7D"))
             .GET()
             .build()
         val response = client.send(request, HttpResponse.BodyHandlers.ofByteArray())
@@ -95,10 +107,10 @@ class ConnectProtocolIntegrationTest {
         assertEquals("connect-kotlin-server", mapper.readTree(response.body()).get("name").asText())
     }
 
-    @Test
-    fun `grpc-web unary returns message frame and ok trailer`() {
+    @BothServices
+    fun `grpc-web unary returns message frame and ok trailer`(service: String) {
         val requestMessage = EchoRequest.newBuilder().setMessage("grpcweb").build().toByteArray()
-        val response = post("Echo", "application/grpc-web+proto", envelope(0, requestMessage))
+        val response = post(service, "Echo", "application/grpc-web+proto", envelope(0, requestMessage))
 
         assertEquals(200, response.statusCode())
         assertTrue(response.headers().firstValue("content-type").get().startsWith("application/grpc-web+proto"))
@@ -114,10 +126,10 @@ class ConnectProtocolIntegrationTest {
         assertTrue(trailerText.contains("grpc-status: 0"), "trailer was: $trailerText")
     }
 
-    @Test
-    fun `connect server streaming yields messages and end of stream`() {
+    @BothServices
+    fun `connect server streaming yields messages and end of stream`(service: String) {
         val requestMessage = CountRequest.newBuilder().setTo(3).build().toByteArray()
-        val response = post("Count", "application/connect+proto", envelope(0, requestMessage))
+        val response = post(service, "Count", "application/connect+proto", envelope(0, requestMessage))
 
         assertEquals(200, response.statusCode())
         val frames = readFrames(response.body())
@@ -130,17 +142,17 @@ class ConnectProtocolIntegrationTest {
         assertFalse(payload.has("error"), "end-of-stream should omit error on success")
     }
 
-    @Test
-    fun `unknown method is unimplemented`() {
-        val response = post("DoesNotExist", "application/proto", ByteArray(0))
+    @BothServices
+    fun `unknown method is unimplemented`(service: String) {
+        val response = post(service, "DoesNotExist", "application/proto", ByteArray(0))
 
         assertEquals(501, response.statusCode())
         assertEquals("unimplemented", mapper.readTree(response.body()).get("code").asText())
     }
 
-    @Test
-    fun `unsupported request compression is rejected`() {
-        val request = HttpRequest.newBuilder(URI.create(url("Echo")))
+    @BothServices
+    fun `unsupported request compression is rejected`(service: String) {
+        val request = HttpRequest.newBuilder(URI.create(url(service, "Echo")))
             .header("Content-Type", "application/json")
             .header("Content-Encoding", "br")
             .POST(HttpRequest.BodyPublishers.ofByteArray("""{"message":"x"}""".toByteArray()))
@@ -151,9 +163,9 @@ class ConnectProtocolIntegrationTest {
         assertEquals("unimplemented", mapper.readTree(response.body()).get("code").asText())
     }
 
-    @Test
-    fun `propagates request metadata into a response header and trailer (connect unary)`() {
-        val request = HttpRequest.newBuilder(URI.create(url("Echo")))
+    @BothServices
+    fun `propagates request metadata into a response header and trailer (connect unary)`(service: String) {
+        val request = HttpRequest.newBuilder(URI.create(url(service, "Echo")))
             .header("Content-Type", "application/proto")
             .header("x-echo", "hi")
             .POST(HttpRequest.BodyPublishers.ofByteArray(EchoRequest.newBuilder().setMessage("m").build().toByteArray()))
@@ -161,14 +173,13 @@ class ConnectProtocolIntegrationTest {
         val response = client.send(request, HttpResponse.BodyHandlers.ofByteArray())
 
         assertEquals(200, response.statusCode())
-        // Leading metadata becomes a plain response header; trailers get the Trailer- prefix.
         assertEquals("hi", response.headers().firstValue("x-echo-header").orElse(null))
         assertEquals("hi", response.headers().firstValue("Trailer-x-echo-trailer").orElse(null))
     }
 
-    @Test
-    fun `propagates metadata into leading header and grpc-web trailer frame`() {
-        val request = HttpRequest.newBuilder(URI.create(url("Echo")))
+    @BothServices
+    fun `propagates metadata into leading header and grpc-web trailer frame`(service: String) {
+        val request = HttpRequest.newBuilder(URI.create(url(service, "Echo")))
             .header("Content-Type", "application/grpc-web+proto")
             .header("x-echo", "gw")
             .POST(HttpRequest.BodyPublishers.ofByteArray(envelope(0, EchoRequest.newBuilder().setMessage("m").build().toByteArray())))
@@ -184,13 +195,13 @@ class ConnectProtocolIntegrationTest {
         assertTrue(trailer.contains("x-echo-trailer: gw"), trailer)
     }
 
-    @Test
-    fun `error over grpc-web is a trailer frame with status and details`() {
-        val response = post("Fail", "application/grpc-web+proto", envelope(0, FailRequest.newBuilder().setReason("boom").build().toByteArray()))
+    @BothServices
+    fun `error over grpc-web is a trailer frame with status and details`(service: String) {
+        val response = post(service, "Fail", "application/grpc-web+proto", envelope(0, FailRequest.newBuilder().setReason("boom").build().toByteArray()))
 
         assertEquals(200, response.statusCode())
         val frames = readFrames(response.body())
-        assertEquals(1, frames.size) // no message frame, only the trailer
+        assertEquals(1, frames.size)
         assertEquals(0x80, frames[0].flags)
         val trailer = String(frames[0].data, StandardCharsets.US_ASCII)
         assertTrue(trailer.contains("grpc-status: 3"), trailer)
@@ -198,9 +209,9 @@ class ConnectProtocolIntegrationTest {
         assertTrue(trailer.contains("grpc-status-details-bin:"), trailer)
     }
 
-    @Test
-    fun `error over connect streaming is an end-of-stream error`() {
-        val response = post("Fail", "application/connect+proto", envelope(0, FailRequest.newBuilder().setReason("kaboom").build().toByteArray()))
+    @BothServices
+    fun `error over connect streaming is an end-of-stream error`(service: String) {
+        val response = post(service, "Fail", "application/connect+proto", envelope(0, FailRequest.newBuilder().setReason("kaboom").build().toByteArray()))
 
         assertEquals(200, response.statusCode())
         val frames = readFrames(response.body())
@@ -212,26 +223,26 @@ class ConnectProtocolIntegrationTest {
         assertEquals("google.rpc.ErrorInfo", error.get("details").get(0).get("type").asText())
     }
 
-    @Test
-    fun `maps gRPC status codes to HTTP status and wire code`() {
+    @BothServices
+    fun `maps gRPC status codes to HTTP status and wire code`(service: String) {
         val cases = listOf(
             Triple(5, 404, "not_found"),
             Triple(7, 403, "permission_denied"),
             Triple(16, 401, "unauthenticated"),
         )
         for ((code, httpStatus, wireName) in cases) {
-            val response = post("Fail", "application/json", """{"grpcCode":$code}""".toByteArray())
+            val response = post(service, "Fail", "application/json", """{"grpcCode":$code}""".toByteArray())
             assertEquals(httpStatus, response.statusCode(), "code $code")
             assertEquals(wireName, mapper.readTree(response.body()).get("code").asText(), "code $code")
         }
     }
 
-    @Test
-    fun `round-trips a protobuf Any over proto`() {
+    @BothServices
+    fun `round-trips a protobuf Any over proto`(service: String) {
         val packed = Any.pack(EchoRequest.newBuilder().setMessage("packed").build())
         val envelope = AnyEnvelope.newBuilder().setPayload(packed).setLabel("x").build()
 
-        val response = post("RoundTrip", "application/proto", envelope.toByteArray())
+        val response = post(service, "RoundTrip", "application/proto", envelope.toByteArray())
 
         assertEquals(200, response.statusCode())
         val out = AnyEnvelope.parseFrom(response.body())
@@ -240,14 +251,13 @@ class ConnectProtocolIntegrationTest {
         assertEquals("packed", out.payload.unpack(EchoRequest::class.java).message)
     }
 
-    @Test
-    fun `round-trips a protobuf Any over json`() {
-        // The JSON codec must resolve the Any @type via the registry's type registry.
+    @BothServices
+    fun `round-trips a protobuf Any over json`(service: String) {
         val body = """
             {"payload":{"@type":"type.googleapis.com/cgardev.example.v1.EchoRequest","message":"packed"},"label":"y"}
         """.trimIndent()
 
-        val response = post("RoundTrip", "application/json", body.toByteArray())
+        val response = post(service, "RoundTrip", "application/json", body.toByteArray())
 
         assertEquals(200, response.statusCode())
         val json = mapper.readTree(response.body())
@@ -257,31 +267,30 @@ class ConnectProtocolIntegrationTest {
         assertEquals("packed", payload.get("message").asText())
     }
 
-    @Test
-    fun `handles many concurrent requests without cross-talk`() {
+    @BothServices
+    fun `handles many concurrent requests without cross-talk`(service: String) {
         val count = 64
         val pool = Executors.newFixedThreadPool(16)
         try {
             val tasks = (0 until count).map { i ->
                 Callable {
                     val body = EchoRequest.newBuilder().setMessage("c$i").build().toByteArray()
-                    val response = post("Echo", "application/proto", body)
+                    val response = post(service, "Echo", "application/proto", body)
                     assertEquals(200, response.statusCode())
                     EchoResponse.parseFrom(response.body()).message
                 }
             }
             val results = pool.invokeAll(tasks).map { it.get() }
-            // Every concurrent call must get exactly its own echo back.
             assertEquals((0 until count).map { "echo: c$it" }.toSet(), results.toSet())
         } finally {
             pool.shutdownNow()
         }
     }
 
-    @Test
-    fun `server streaming over grpc-web yields messages then trailer`() {
+    @BothServices
+    fun `server streaming over grpc-web yields messages then trailer`(service: String) {
         val request = CountRequest.newBuilder().setTo(5).build().toByteArray()
-        val response = post("Count", "application/grpc-web+proto", envelope(0, request))
+        val response = post(service, "Count", "application/grpc-web+proto", envelope(0, request))
 
         assertEquals(200, response.statusCode())
         val frames = readFrames(response.body())
@@ -291,10 +300,10 @@ class ConnectProtocolIntegrationTest {
         assertTrue(String(frames[5].data, StandardCharsets.US_ASCII).contains("grpc-status: 0"))
     }
 
-    @Test
-    fun `empty server stream emits only the end-of-stream frame`() {
+    @BothServices
+    fun `empty server stream emits only the end-of-stream frame`(service: String) {
         val request = CountRequest.newBuilder().setTo(0).build().toByteArray()
-        val response = post("Count", "application/connect+proto", envelope(0, request))
+        val response = post(service, "Count", "application/connect+proto", envelope(0, request))
 
         assertEquals(200, response.statusCode())
         val frames = readFrames(response.body())
@@ -302,11 +311,11 @@ class ConnectProtocolIntegrationTest {
         assertEquals(0x02, frames[0].flags)
     }
 
-    @Test
-    fun `large server stream preserves order and count`() {
+    @BothServices
+    fun `large server stream preserves order and count`(service: String) {
         val count = 250
         val request = CountRequest.newBuilder().setTo(count).build().toByteArray()
-        val response = post("Count", "application/connect+proto", envelope(0, request))
+        val response = post(service, "Count", "application/connect+proto", envelope(0, request))
 
         assertEquals(200, response.statusCode())
         val frames = readFrames(response.body())

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file cgardev/example/v1/echo.proto.
  */
 export const file_cgardev_example_v1_echo: GenFile = /*@__PURE__*/
-  fileDesc("Ch1jZ2FyZGV2L2V4YW1wbGUvdjEvZWNoby5wcm90bxISY2dhcmRldi5leGFtcGxlLnYxIh4KC0VjaG9SZXF1ZXN0Eg8KB21lc3NhZ2UYASABKAkiHwoMRWNob1Jlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkiFgoUR2V0U2VydmVySW5mb1JlcXVlc3QiKwoKU2VydmVySW5mbxIMCgRuYW1lGAEgASgJEg8KB3ZlcnNpb24YAiABKAkiGgoMQ291bnRSZXF1ZXN0EgoKAnRvGAEgASgFIh8KDUNvdW50UmVzcG9uc2USDgoGbnVtYmVyGAEgASgFIjAKC0ZhaWxSZXF1ZXN0Eg4KBnJlYXNvbhgBIAEoCRIRCglncnBjX2NvZGUYAiABKAUiQwoLQW55RW52ZWxvcGUSJQoHcGF5bG9hZBgBIAEoCzIULmdvb2dsZS5wcm90b2J1Zi5BbnkSDQoFbGFiZWwYAiABKAkyogMKC0VjaG9TZXJ2aWNlEkkKBEVjaG8SHy5jZ2FyZGV2LmV4YW1wbGUudjEuRWNob1JlcXVlc3QaIC5jZ2FyZGV2LmV4YW1wbGUudjEuRWNob1Jlc3BvbnNlEl4KDUdldFNlcnZlckluZm8SKC5jZ2FyZGV2LmV4YW1wbGUudjEuR2V0U2VydmVySW5mb1JlcXVlc3QaHi5jZ2FyZGV2LmV4YW1wbGUudjEuU2VydmVySW5mbyIDkAIBEk4KBUNvdW50EiAuY2dhcmRldi5leGFtcGxlLnYxLkNvdW50UmVxdWVzdBohLmNnYXJkZXYuZXhhbXBsZS52MS5Db3VudFJlc3BvbnNlMAESSQoERmFpbBIfLmNnYXJkZXYuZXhhbXBsZS52MS5GYWlsUmVxdWVzdBogLmNnYXJkZXYuZXhhbXBsZS52MS5FY2hvUmVzcG9uc2USTQoJUm91bmRUcmlwEh8uY2dhcmRldi5leGFtcGxlLnYxLkFueUVudmVsb3BlGh8uY2dhcmRldi5leGFtcGxlLnYxLkFueUVudmVsb3BlQisKHGlvLmdpdGh1Yi5jZ2FyZGV2LmV4YW1wbGUudjFCCUVjaG9Qcm90b1ABYgZwcm90bzM", [file_google_protobuf_any]);
+  fileDesc("Ch1jZ2FyZGV2L2V4YW1wbGUvdjEvZWNoby5wcm90bxISY2dhcmRldi5leGFtcGxlLnYxIh4KC0VjaG9SZXF1ZXN0Eg8KB21lc3NhZ2UYASABKAkiHwoMRWNob1Jlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkiFgoUR2V0U2VydmVySW5mb1JlcXVlc3QiKwoKU2VydmVySW5mbxIMCgRuYW1lGAEgASgJEg8KB3ZlcnNpb24YAiABKAkiGgoMQ291bnRSZXF1ZXN0EgoKAnRvGAEgASgFIh8KDUNvdW50UmVzcG9uc2USDgoGbnVtYmVyGAEgASgFIjAKC0ZhaWxSZXF1ZXN0Eg4KBnJlYXNvbhgBIAEoCRIRCglncnBjX2NvZGUYAiABKAUiQwoLQW55RW52ZWxvcGUSJQoHcGF5bG9hZBgBIAEoCzIULmdvb2dsZS5wcm90b2J1Zi5BbnkSDQoFbGFiZWwYAiABKAkyogMKC0VjaG9TZXJ2aWNlEkkKBEVjaG8SHy5jZ2FyZGV2LmV4YW1wbGUudjEuRWNob1JlcXVlc3QaIC5jZ2FyZGV2LmV4YW1wbGUudjEuRWNob1Jlc3BvbnNlEl4KDUdldFNlcnZlckluZm8SKC5jZ2FyZGV2LmV4YW1wbGUudjEuR2V0U2VydmVySW5mb1JlcXVlc3QaHi5jZ2FyZGV2LmV4YW1wbGUudjEuU2VydmVySW5mbyIDkAIBEk4KBUNvdW50EiAuY2dhcmRldi5leGFtcGxlLnYxLkNvdW50UmVxdWVzdBohLmNnYXJkZXYuZXhhbXBsZS52MS5Db3VudFJlc3BvbnNlMAESSQoERmFpbBIfLmNnYXJkZXYuZXhhbXBsZS52MS5GYWlsUmVxdWVzdBogLmNnYXJkZXYuZXhhbXBsZS52MS5FY2hvUmVzcG9uc2USTQoJUm91bmRUcmlwEh8uY2dhcmRldi5leGFtcGxlLnYxLkFueUVudmVsb3BlGh8uY2dhcmRldi5leGFtcGxlLnYxLkFueUVudmVsb3BlMqgDChFFY2hvS290bGluU2VydmljZRJJCgRFY2hvEh8uY2dhcmRldi5leGFtcGxlLnYxLkVjaG9SZXF1ZXN0GiAuY2dhcmRldi5leGFtcGxlLnYxLkVjaG9SZXNwb25zZRJeCg1HZXRTZXJ2ZXJJbmZvEiguY2dhcmRldi5leGFtcGxlLnYxLkdldFNlcnZlckluZm9SZXF1ZXN0Gh4uY2dhcmRldi5leGFtcGxlLnYxLlNlcnZlckluZm8iA5ACARJOCgVDb3VudBIgLmNnYXJkZXYuZXhhbXBsZS52MS5Db3VudFJlcXVlc3QaIS5jZ2FyZGV2LmV4YW1wbGUudjEuQ291bnRSZXNwb25zZTABEkkKBEZhaWwSHy5jZ2FyZGV2LmV4YW1wbGUudjEuRmFpbFJlcXVlc3QaIC5jZ2FyZGV2LmV4YW1wbGUudjEuRWNob1Jlc3BvbnNlEk0KCVJvdW5kVHJpcBIfLmNnYXJkZXYuZXhhbXBsZS52MS5BbnlFbnZlbG9wZRofLmNnYXJkZXYuZXhhbXBsZS52MS5BbnlFbnZlbG9wZUIrChxpby5naXRodWIuY2dhcmRldi5leGFtcGxlLnYxQglFY2hvUHJvdG9QAWIGcHJvdG8z", [file_google_protobuf_any]);
 
 /**
  * @generated from message cgardev.example.v1.EchoRequest
@@ -217,4 +217,54 @@ export const EchoService: GenService<{
   },
 }> = /*@__PURE__*/
   serviceDesc(file_cgardev_example_v1_echo, 0);
+
+/**
+ * Same surface as EchoService, but its server implementation uses the Kotlin
+ * coroutine gRPC API instead of the Java one. Both must behave identically.
+ *
+ * @generated from service cgardev.example.v1.EchoKotlinService
+ */
+export const EchoKotlinService: GenService<{
+  /**
+   * @generated from rpc cgardev.example.v1.EchoKotlinService.Echo
+   */
+  echo: {
+    methodKind: "unary";
+    input: typeof EchoRequestSchema;
+    output: typeof EchoResponseSchema;
+  },
+  /**
+   * @generated from rpc cgardev.example.v1.EchoKotlinService.GetServerInfo
+   */
+  getServerInfo: {
+    methodKind: "unary";
+    input: typeof GetServerInfoRequestSchema;
+    output: typeof ServerInfoSchema;
+  },
+  /**
+   * @generated from rpc cgardev.example.v1.EchoKotlinService.Count
+   */
+  count: {
+    methodKind: "server_streaming";
+    input: typeof CountRequestSchema;
+    output: typeof CountResponseSchema;
+  },
+  /**
+   * @generated from rpc cgardev.example.v1.EchoKotlinService.Fail
+   */
+  fail: {
+    methodKind: "unary";
+    input: typeof FailRequestSchema;
+    output: typeof EchoResponseSchema;
+  },
+  /**
+   * @generated from rpc cgardev.example.v1.EchoKotlinService.RoundTrip
+   */
+  roundTrip: {
+    methodKind: "unary";
+    input: typeof AnyEnvelopeSchema;
+    output: typeof AnyEnvelopeSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_cgardev_example_v1_echo, 1);
 

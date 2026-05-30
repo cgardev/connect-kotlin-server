@@ -26,6 +26,22 @@ service EchoService {
   rpc RoundTrip(AnyEnvelope) returns (AnyEnvelope);
 }
 
+// Same surface as EchoService, but its server implementation uses the Kotlin
+// coroutine gRPC API instead of the Java one. Both must behave identically.
+service EchoKotlinService {
+  rpc Echo(EchoRequest) returns (EchoResponse);
+
+  rpc GetServerInfo(GetServerInfoRequest) returns (ServerInfo) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  rpc Count(CountRequest) returns (stream CountResponse);
+
+  rpc Fail(FailRequest) returns (EchoResponse);
+
+  rpc RoundTrip(AnyEnvelope) returns (AnyEnvelope);
+}
+
 message EchoRequest {
   string message = 1;
 }

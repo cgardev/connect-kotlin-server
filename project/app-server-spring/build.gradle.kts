@@ -8,6 +8,8 @@ plugins {
 
 val grpcVersion = "1.69.0"
 val protobufVersion = "4.28.3"
+val grpcKotlinVersion = "1.4.1"
+val coroutinesVersion = "1.9.0"
 
 dependencies {
     // The auto-configuration starter wires the Connect server and manages its
@@ -20,10 +22,14 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
-    // gRPC service definitions generated from the demo proto.
+    // gRPC service definitions generated from the demo proto, for both the Java
+    // (ImplBase) and Kotlin (coroutine) server APIs.
     implementation("io.grpc:grpc-stub:$grpcVersion")
     implementation("io.grpc:grpc-protobuf:$grpcVersion")
+    implementation("io.grpc:grpc-kotlin-stub:$grpcKotlinVersion")
     implementation("com.google.protobuf:protobuf-java:$protobufVersion")
+    implementation("com.google.protobuf:protobuf-kotlin:$protobufVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
     // Supplies javax.annotation.Generated referenced by the generated gRPC stubs.
     compileOnly("org.apache.tomcat:annotations-api:6.0.53")
 
@@ -41,11 +47,18 @@ protobuf {
         id("grpc") {
             artifact = "io.grpc:protoc-gen-grpc-java:$grpcVersion"
         }
+        id("grpckt") {
+            artifact = "io.grpc:protoc-gen-grpc-kotlin:$grpcKotlinVersion:jdk8@jar"
+        }
     }
     generateProtoTasks {
         all().forEach { task ->
             task.plugins {
                 id("grpc")
+                id("grpckt")
+            }
+            task.builtins {
+                id("kotlin")
             }
         }
     }
