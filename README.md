@@ -46,10 +46,30 @@ in front of a gRPC backend to transcode Connect/gRPC-Web into gRPC.
 
 ## Installation
 
+> [!IMPORTANT]
+> There are **no published releases yet**. While the project is in alpha, it is
+> versioned **by commit** — depend on a specific commit and treat every commit as
+> potentially breaking (see [Versioning & compatibility](#versioning--compatibility)).
+
+Pull a specific commit through [JitPack](https://jitpack.io):
+
 ```kotlin
-dependencies {
-    implementation("io.github.cgardev:connect-kotlin-server:0.1.0")
+repositories {
+    maven { url = uri("https://jitpack.io") }
 }
+
+dependencies {
+    // Replace <commit> with the exact short commit SHA you want to pin to.
+    implementation("com.github.cgardev:connect-kotlin-server:<commit>")
+}
+```
+
+Or build it locally and depend on the snapshot:
+
+```bash
+git clone https://github.com/cgardev/connect-kotlin-server.git
+cd connect-kotlin-server && ./gradlew :project:lib-connect-server:publishToMavenLocal
+# then add mavenLocal() and io.github.cgardev:connect-kotlin-server:0.0.0-SNAPSHOT
 ```
 
 ## Quick start
@@ -137,13 +157,27 @@ project/app-server-spring/    Runnable example: a demo gRPC service served over 
 build-logic/                  Gradle convention plugins.
 ```
 
+## Versioning & compatibility
+
+During alpha there are **no published releases and no version numbers** — the commit
+**is** the version. Pin your dependency to an exact commit and upgrade deliberately:
+
+- **No compatibility is guaranteed.** Source, binary and wire behaviour may change between
+  any two commits, without deprecation cycles or migration notes.
+- The Gradle version stays at `0.0.0-SNAPSHOT`; it is not a release.
+- Once the API settles, this project will adopt semantic versioning and tagged releases.
+
 ## Publishing
 
-The library publishes via `maven-publish` to GitHub Packages out of the box (CI uses the
-repository `GITHUB_TOKEN`). The group is `io.github.cgardev`, whose Maven Central namespace
-is verified simply by proving ownership of the `cgardev` GitHub account through the Sonatype
-Central Portal — no custom domain required. Maven Central additionally needs a GPG signing
-key provided through the `SIGNING_KEY` / `SIGNING_PASSWORD` environment variables.
+There are no tagged releases yet, so consumers use JitPack by commit (see
+[Installation](#installation)); JitPack builds the requested commit per
+[`jitpack.yml`](jitpack.yml).
+
+The build is also set up to publish via `maven-publish` once releases begin: to GitHub
+Packages out of the box (CI uses the repository `GITHUB_TOKEN`), or to Maven Central under
+the `io.github.cgardev` group — whose namespace is verified by proving ownership of the
+`cgardev` GitHub account through the Sonatype Central Portal (no custom domain), plus a GPG
+signing key via the `SIGNING_KEY` / `SIGNING_PASSWORD` environment variables.
 See [`.github/workflows/publish.yml`](.github/workflows/publish.yml).
 
 ## Disclaimer
