@@ -1,8 +1,8 @@
 import com.google.protobuf.gradle.id
 
 plugins {
-    id("com.metalogenia.gradle.common.spring-kotlin-conventions")
-    id("com.metalogenia.gradle.common.spring-kotlin-conventions-boot")
+    id("io.github.cgardev.gradle.common.spring-kotlin-conventions")
+    id("io.github.cgardev.gradle.common.spring-kotlin-conventions-boot")
     id("com.google.protobuf") version "0.9.4"
 }
 

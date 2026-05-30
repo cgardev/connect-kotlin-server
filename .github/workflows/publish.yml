@@ -1,0 +1,35 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 24
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: "24"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Publishes to GitHub Packages using the repository token. Publishing to
+      # Maven Central instead requires OSSRH_USERNAME / OSSRH_PASSWORD and a
+      # SIGNING_KEY / SIGNING_PASSWORD; swap the task below for
+      # publishMavenPublicationToMavenCentralRepository.
+      - name: Publish to GitHub Packages
+        run: ./gradlew :project:lib-connect-server:publishMavenPublicationToGitHubPackagesRepository --no-daemon --stacktrace
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

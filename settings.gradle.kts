@@ -6,7 +6,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = "connect-rpc-kotlin-server"
+rootProject.name = "connect-kotlin-server"
 
 includeBuild("build-logic")
 

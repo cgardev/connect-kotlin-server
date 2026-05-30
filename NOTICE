@@ -1,0 +1,15 @@
+connect-kotlin-server
+Copyright 2026 Cristian Garcia
+
+This product includes software developed as an independent, server-side
+implementation of the Connect protocol (https://connectrpc.com) for the JVM.
+
+It is not affiliated with or endorsed by Buf Technologies, Inc. or the
+Connect project. "Connect" and "gRPC" are trademarks of their respective
+owners.
+
+This product depends on software developed by third parties, including:
+  - gRPC (https://grpc.io)               — Apache License 2.0
+  - Protocol Buffers (https://protobuf.dev) — BSD-3-Clause
+  - Netty (https://netty.io)             — Apache License 2.0
+  - Jackson (https://github.com/FasterXML/jackson) — Apache License 2.0
