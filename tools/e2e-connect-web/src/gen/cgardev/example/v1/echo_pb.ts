@@ -4,13 +4,15 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Any } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_any } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file cgardev/example/v1/echo.proto.
  */
 export const file_cgardev_example_v1_echo: GenFile = /*@__PURE__*/
-  fileDesc("Ch1jZ2FyZGV2L2V4YW1wbGUvdjEvZWNoby5wcm90bxISY2dhcmRldi5leGFtcGxlLnYxIh4KC0VjaG9SZXF1ZXN0Eg8KB21lc3NhZ2UYASABKAkiHwoMRWNob1Jlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkiFgoUR2V0U2VydmVySW5mb1JlcXVlc3QiKwoKU2VydmVySW5mbxIMCgRuYW1lGAEgASgJEg8KB3ZlcnNpb24YAiABKAkiGgoMQ291bnRSZXF1ZXN0EgoKAnRvGAEgASgFIh8KDUNvdW50UmVzcG9uc2USDgoGbnVtYmVyGAEgASgFIh0KC0ZhaWxSZXF1ZXN0Eg4KBnJlYXNvbhgBIAEoCTLTAgoLRWNob1NlcnZpY2USSQoERWNobxIfLmNnYXJkZXYuZXhhbXBsZS52MS5FY2hvUmVxdWVzdBogLmNnYXJkZXYuZXhhbXBsZS52MS5FY2hvUmVzcG9uc2USXgoNR2V0U2VydmVySW5mbxIoLmNnYXJkZXYuZXhhbXBsZS52MS5HZXRTZXJ2ZXJJbmZvUmVxdWVzdBoeLmNnYXJkZXYuZXhhbXBsZS52MS5TZXJ2ZXJJbmZvIgOQAgESTgoFQ291bnQSIC5jZ2FyZGV2LmV4YW1wbGUudjEuQ291bnRSZXF1ZXN0GiEuY2dhcmRldi5leGFtcGxlLnYxLkNvdW50UmVzcG9uc2UwARJJCgRGYWlsEh8uY2dhcmRldi5leGFtcGxlLnYxLkZhaWxSZXF1ZXN0GiAuY2dhcmRldi5leGFtcGxlLnYxLkVjaG9SZXNwb25zZUIrChxpby5naXRodWIuY2dhcmRldi5leGFtcGxlLnYxQglFY2hvUHJvdG9QAWIGcHJvdG8z");
+  fileDesc("Ch1jZ2FyZGV2L2V4YW1wbGUvdjEvZWNoby5wcm90bxISY2dhcmRldi5leGFtcGxlLnYxIh4KC0VjaG9SZXF1ZXN0Eg8KB21lc3NhZ2UYASABKAkiHwoMRWNob1Jlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkiFgoUR2V0U2VydmVySW5mb1JlcXVlc3QiKwoKU2VydmVySW5mbxIMCgRuYW1lGAEgASgJEg8KB3ZlcnNpb24YAiABKAkiGgoMQ291bnRSZXF1ZXN0EgoKAnRvGAEgASgFIh8KDUNvdW50UmVzcG9uc2USDgoGbnVtYmVyGAEgASgFIh0KC0ZhaWxSZXF1ZXN0Eg4KBnJlYXNvbhgBIAEoCSJDCgtBbnlFbnZlbG9wZRIlCgdwYXlsb2FkGAEgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueRINCgVsYWJlbBgCIAEoCTKiAwoLRWNob1NlcnZpY2USSQoERWNobxIfLmNnYXJkZXYuZXhhbXBsZS52MS5FY2hvUmVxdWVzdBogLmNnYXJkZXYuZXhhbXBsZS52MS5FY2hvUmVzcG9uc2USXgoNR2V0U2VydmVySW5mbxIoLmNnYXJkZXYuZXhhbXBsZS52MS5HZXRTZXJ2ZXJJbmZvUmVxdWVzdBoeLmNnYXJkZXYuZXhhbXBsZS52MS5TZXJ2ZXJJbmZvIgOQAgESTgoFQ291bnQSIC5jZ2FyZGV2LmV4YW1wbGUudjEuQ291bnRSZXF1ZXN0GiEuY2dhcmRldi5leGFtcGxlLnYxLkNvdW50UmVzcG9uc2UwARJJCgRGYWlsEh8uY2dhcmRldi5leGFtcGxlLnYxLkZhaWxSZXF1ZXN0GiAuY2dhcmRldi5leGFtcGxlLnYxLkVjaG9SZXNwb25zZRJNCglSb3VuZFRyaXASHy5jZ2FyZGV2LmV4YW1wbGUudjEuQW55RW52ZWxvcGUaHy5jZ2FyZGV2LmV4YW1wbGUudjEuQW55RW52ZWxvcGVCKwocaW8uZ2l0aHViLmNnYXJkZXYuZXhhbXBsZS52MUIJRWNob1Byb3RvUAFiBnByb3RvMw", [file_google_protobuf_any]);
 
 /**
  * @generated from message cgardev.example.v1.EchoRequest
@@ -133,9 +135,35 @@ export const FailRequestSchema: GenMessage<FailRequest> = /*@__PURE__*/
   messageDesc(file_cgardev_example_v1_echo, 6);
 
 /**
+ * Carries an arbitrary message inside a google.protobuf.Any, plus a label, so
+ * tests can verify Any packing/unpacking round-trips over both proto and JSON.
+ *
+ * @generated from message cgardev.example.v1.AnyEnvelope
+ */
+export type AnyEnvelope = Message<"cgardev.example.v1.AnyEnvelope"> & {
+  /**
+   * @generated from field: google.protobuf.Any payload = 1;
+   */
+  payload?: Any;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+};
+
+/**
+ * Describes the message cgardev.example.v1.AnyEnvelope.
+ * Use `create(AnyEnvelopeSchema)` to create a new message.
+ */
+export const AnyEnvelopeSchema: GenMessage<AnyEnvelope> = /*@__PURE__*/
+  messageDesc(file_cgardev_example_v1_echo, 7);
+
+/**
  * A small demonstration service exercising the Connect server layer: a plain
- * unary call, an idempotent unary call (GET-eligible), a server-streaming call
- * and a call that always fails (to exercise error mapping with details).
+ * unary call, an idempotent unary call (GET-eligible), a server-streaming call,
+ * a call that always fails (to exercise error mapping with details), and a call
+ * that round-trips a google.protobuf.Any (to exercise Any in proto and JSON).
  *
  * @generated from service cgardev.example.v1.EchoService
  */
@@ -171,6 +199,14 @@ export const EchoService: GenService<{
     methodKind: "unary";
     input: typeof FailRequestSchema;
     output: typeof EchoResponseSchema;
+  },
+  /**
+   * @generated from rpc cgardev.example.v1.EchoService.RoundTrip
+   */
+  roundTrip: {
+    methodKind: "unary";
+    input: typeof AnyEnvelopeSchema;
+    output: typeof AnyEnvelopeSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_cgardev_example_v1_echo, 0);

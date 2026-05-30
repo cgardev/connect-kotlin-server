@@ -2,13 +2,16 @@ syntax = "proto3";
 
 package cgardev.example.v1;
 
+import "google/protobuf/any.proto";
+
 option java_multiple_files = true;
 option java_package = "io.github.cgardev.example.v1";
 option java_outer_classname = "EchoProto";
 
 // A small demonstration service exercising the Connect server layer: a plain
-// unary call, an idempotent unary call (GET-eligible), a server-streaming call
-// and a call that always fails (to exercise error mapping with details).
+// unary call, an idempotent unary call (GET-eligible), a server-streaming call,
+// a call that always fails (to exercise error mapping with details), and a call
+// that round-trips a google.protobuf.Any (to exercise Any in proto and JSON).
 service EchoService {
   rpc Echo(EchoRequest) returns (EchoResponse);
 
@@ -19,6 +22,8 @@ service EchoService {
   rpc Count(CountRequest) returns (stream CountResponse);
 
   rpc Fail(FailRequest) returns (EchoResponse);
+
+  rpc RoundTrip(AnyEnvelope) returns (AnyEnvelope);
 }
 
 message EchoRequest {
@@ -46,4 +51,11 @@ message CountResponse {
 
 message FailRequest {
   string reason = 1;
+}
+
+// Carries an arbitrary message inside a google.protobuf.Any, plus a label, so
+// tests can verify Any packing/unpacking round-trips over both proto and JSON.
+message AnyEnvelope {
+  google.protobuf.Any payload = 1;
+  string label = 2;
 }

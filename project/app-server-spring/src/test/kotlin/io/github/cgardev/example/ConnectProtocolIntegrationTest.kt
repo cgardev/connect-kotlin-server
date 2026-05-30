@@ -2,6 +2,8 @@ package io.github.cgardev.example
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.protobuf.Any
+import io.github.cgardev.example.v1.AnyEnvelope
 import io.github.cgardev.example.v1.CountRequest
 import io.github.cgardev.example.v1.CountResponse
 import io.github.cgardev.example.v1.EchoRequest
@@ -21,6 +23,8 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
 
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
@@ -144,6 +148,101 @@ class ConnectProtocolIntegrationTest {
 
         assertEquals(501, response.statusCode())
         assertEquals("unimplemented", mapper.readTree(response.body()).get("code").asText())
+    }
+
+    // ----- google.protobuf.Any -----
+
+    @Test
+    fun `round-trips a protobuf Any over proto`() {
+        val packed = Any.pack(EchoRequest.newBuilder().setMessage("packed").build())
+        val envelope = AnyEnvelope.newBuilder().setPayload(packed).setLabel("x").build()
+
+        val response = post("RoundTrip", "application/proto", envelope.toByteArray())
+
+        assertEquals(200, response.statusCode())
+        val out = AnyEnvelope.parseFrom(response.body())
+        assertEquals("roundtrip:x", out.label)
+        assertTrue(out.payload.`is`(EchoRequest::class.java))
+        assertEquals("packed", out.payload.unpack(EchoRequest::class.java).message)
+    }
+
+    @Test
+    fun `round-trips a protobuf Any over json`() {
+        // The JSON codec must resolve the Any @type via the registry's type registry.
+        val body = """
+            {"payload":{"@type":"type.googleapis.com/cgardev.example.v1.EchoRequest","message":"packed"},"label":"y"}
+        """.trimIndent()
+
+        val response = post("RoundTrip", "application/json", body.toByteArray())
+
+        assertEquals(200, response.statusCode())
+        val json = mapper.readTree(response.body())
+        assertEquals("roundtrip:y", json.get("label").asText())
+        val payload = json.get("payload")
+        assertEquals("type.googleapis.com/cgardev.example.v1.EchoRequest", payload.get("@type").asText())
+        assertEquals("packed", payload.get("message").asText())
+    }
+
+    // ----- Concurrency -----
+
+    @Test
+    fun `handles many concurrent requests without cross-talk`() {
+        val count = 64
+        val pool = Executors.newFixedThreadPool(16)
+        try {
+            val tasks = (0 until count).map { i ->
+                Callable {
+                    val body = EchoRequest.newBuilder().setMessage("c$i").build().toByteArray()
+                    val response = post("Echo", "application/proto", body)
+                    assertEquals(200, response.statusCode())
+                    EchoResponse.parseFrom(response.body()).message
+                }
+            }
+            val results = pool.invokeAll(tasks).map { it.get() }
+            // Every concurrent call must get exactly its own echo back.
+            assertEquals((0 until count).map { "echo: c$it" }.toSet(), results.toSet())
+        } finally {
+            pool.shutdownNow()
+        }
+    }
+
+    // ----- Streaming edge cases -----
+
+    @Test
+    fun `server streaming over grpc-web yields messages then trailer`() {
+        val request = CountRequest.newBuilder().setTo(5).build().toByteArray()
+        val response = post("Count", "application/grpc-web+proto", envelope(0, request))
+
+        assertEquals(200, response.statusCode())
+        val frames = readFrames(response.body())
+        assertEquals(6, frames.size)
+        assertEquals((1..5).toList(), frames.take(5).map { CountResponse.parseFrom(it.data).number })
+        assertEquals(0x80, frames[5].flags)
+        assertTrue(String(frames[5].data, StandardCharsets.US_ASCII).contains("grpc-status: 0"))
+    }
+
+    @Test
+    fun `empty server stream emits only the end-of-stream frame`() {
+        val request = CountRequest.newBuilder().setTo(0).build().toByteArray()
+        val response = post("Count", "application/connect+proto", envelope(0, request))
+
+        assertEquals(200, response.statusCode())
+        val frames = readFrames(response.body())
+        assertEquals(1, frames.size)
+        assertEquals(0x02, frames[0].flags)
+    }
+
+    @Test
+    fun `large server stream preserves order and count`() {
+        val count = 250
+        val request = CountRequest.newBuilder().setTo(count).build().toByteArray()
+        val response = post("Count", "application/connect+proto", envelope(0, request))
+
+        assertEquals(200, response.statusCode())
+        val frames = readFrames(response.body())
+        assertEquals(count + 1, frames.size)
+        assertEquals((1..count).toList(), frames.take(count).map { CountResponse.parseFrom(it.data).number })
+        assertEquals(0x02, frames.last().flags)
     }
 
     private data class Frame(val flags: Int, val data: ByteArray)

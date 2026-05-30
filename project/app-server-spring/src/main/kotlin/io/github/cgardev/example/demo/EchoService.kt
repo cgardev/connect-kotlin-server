@@ -2,6 +2,7 @@ package io.github.cgardev.example.demo
 
 import com.google.protobuf.Any
 import com.google.rpc.ErrorInfo
+import io.github.cgardev.example.v1.AnyEnvelope
 import io.github.cgardev.example.v1.CountRequest
 import io.github.cgardev.example.v1.CountResponse
 import io.github.cgardev.example.v1.EchoRequest
@@ -38,6 +39,18 @@ class EchoService : EchoServiceGrpc.EchoServiceImplBase() {
         for (number in 1..request.to) {
             responseObserver.onNext(CountResponse.newBuilder().setNumber(number).build())
         }
+        responseObserver.onCompleted()
+    }
+
+    override fun roundTrip(request: AnyEnvelope, responseObserver: StreamObserver<AnyEnvelope>) {
+        // Echo the Any payload back unchanged and tag the label, so clients can
+        // verify Any survives the proto and JSON round-trip through the server.
+        responseObserver.onNext(
+            AnyEnvelope.newBuilder()
+                .setPayload(request.payload)
+                .setLabel("roundtrip:${request.label}")
+                .build(),
+        )
         responseObserver.onCompleted()
     }
 
