@@ -1,1 +1,1 @@
-io.github.cgardev.library.connect.spring.ConnectServerAutoConfiguration
+io.github.cgardev.library.connect.spring.autoconfigure.ConnectServerAutoConfiguration

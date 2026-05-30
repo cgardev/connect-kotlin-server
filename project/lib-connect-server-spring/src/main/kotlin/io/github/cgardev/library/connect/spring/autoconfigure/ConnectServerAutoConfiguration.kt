@@ -1,6 +1,8 @@
-package io.github.cgardev.library.connect.spring
+package io.github.cgardev.library.connect.spring.autoconfigure
 
 import io.github.cgardev.library.connect.ConnectServer
+import io.github.cgardev.library.connect.spring.ConnectServerLifecycle
+import io.github.cgardev.library.connect.spring.ConnectServerProperties
 import io.grpc.BindableService
 import io.grpc.ServerInterceptor
 import org.springframework.beans.factory.ObjectProvider

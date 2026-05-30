@@ -1,6 +1,7 @@
-package io.github.cgardev.library.connect.spring
+package io.github.cgardev.library.connect.spring.autoconfigure
 
 import io.github.cgardev.library.connect.ConnectServer
+import io.github.cgardev.library.connect.spring.ConnectServerLifecycle
 import io.grpc.BindableService
 import io.grpc.ServerServiceDefinition
 import org.assertj.core.api.Assertions.assertThat
