@@ -8,6 +8,7 @@ import io.github.cgardev.example.v1.CountRequest
 import io.github.cgardev.example.v1.CountResponse
 import io.github.cgardev.example.v1.EchoRequest
 import io.github.cgardev.example.v1.EchoResponse
+import io.github.cgardev.example.v1.FailRequest
 import io.github.cgardev.library.connect.ConnectServer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -150,7 +151,80 @@ class ConnectProtocolIntegrationTest {
         assertEquals("unimplemented", mapper.readTree(response.body()).get("code").asText())
     }
 
-    // ----- google.protobuf.Any -----
+    @Test
+    fun `propagates request metadata into a response header and trailer (connect unary)`() {
+        val request = HttpRequest.newBuilder(URI.create(url("Echo")))
+            .header("Content-Type", "application/proto")
+            .header("x-echo", "hi")
+            .POST(HttpRequest.BodyPublishers.ofByteArray(EchoRequest.newBuilder().setMessage("m").build().toByteArray()))
+            .build()
+        val response = client.send(request, HttpResponse.BodyHandlers.ofByteArray())
+
+        assertEquals(200, response.statusCode())
+        // Leading metadata becomes a plain response header; trailers get the Trailer- prefix.
+        assertEquals("hi", response.headers().firstValue("x-echo-header").orElse(null))
+        assertEquals("hi", response.headers().firstValue("Trailer-x-echo-trailer").orElse(null))
+    }
+
+    @Test
+    fun `propagates metadata into leading header and grpc-web trailer frame`() {
+        val request = HttpRequest.newBuilder(URI.create(url("Echo")))
+            .header("Content-Type", "application/grpc-web+proto")
+            .header("x-echo", "gw")
+            .POST(HttpRequest.BodyPublishers.ofByteArray(envelope(0, EchoRequest.newBuilder().setMessage("m").build().toByteArray())))
+            .build()
+        val response = client.send(request, HttpResponse.BodyHandlers.ofByteArray())
+
+        assertEquals(200, response.statusCode())
+        assertEquals("gw", response.headers().firstValue("x-echo-header").orElse(null))
+        val frames = readFrames(response.body())
+        val trailer = String(frames.last().data, StandardCharsets.US_ASCII)
+        assertEquals(0x80, frames.last().flags)
+        assertTrue(trailer.contains("grpc-status: 0"), trailer)
+        assertTrue(trailer.contains("x-echo-trailer: gw"), trailer)
+    }
+
+    @Test
+    fun `error over grpc-web is a trailer frame with status and details`() {
+        val response = post("Fail", "application/grpc-web+proto", envelope(0, FailRequest.newBuilder().setReason("boom").build().toByteArray()))
+
+        assertEquals(200, response.statusCode())
+        val frames = readFrames(response.body())
+        assertEquals(1, frames.size) // no message frame, only the trailer
+        assertEquals(0x80, frames[0].flags)
+        val trailer = String(frames[0].data, StandardCharsets.US_ASCII)
+        assertTrue(trailer.contains("grpc-status: 3"), trailer)
+        assertTrue(trailer.contains("grpc-message:") && trailer.contains("boom"), trailer)
+        assertTrue(trailer.contains("grpc-status-details-bin:"), trailer)
+    }
+
+    @Test
+    fun `error over connect streaming is an end-of-stream error`() {
+        val response = post("Fail", "application/connect+proto", envelope(0, FailRequest.newBuilder().setReason("kaboom").build().toByteArray()))
+
+        assertEquals(200, response.statusCode())
+        val frames = readFrames(response.body())
+        assertEquals(1, frames.size)
+        assertEquals(0x02, frames[0].flags)
+        val error = mapper.readTree(frames[0].data).get("error")
+        assertEquals("invalid_argument", error.get("code").asText())
+        assertTrue(error.get("message").asText().contains("kaboom"))
+        assertEquals("google.rpc.ErrorInfo", error.get("details").get(0).get("type").asText())
+    }
+
+    @Test
+    fun `maps gRPC status codes to HTTP status and wire code`() {
+        val cases = listOf(
+            Triple(5, 404, "not_found"),
+            Triple(7, 403, "permission_denied"),
+            Triple(16, 401, "unauthenticated"),
+        )
+        for ((code, httpStatus, wireName) in cases) {
+            val response = post("Fail", "application/json", """{"grpcCode":$code}""".toByteArray())
+            assertEquals(httpStatus, response.statusCode(), "code $code")
+            assertEquals(wireName, mapper.readTree(response.body()).get("code").asText(), "code $code")
+        }
+    }
 
     @Test
     fun `round-trips a protobuf Any over proto`() {
@@ -183,8 +257,6 @@ class ConnectProtocolIntegrationTest {
         assertEquals("packed", payload.get("message").asText())
     }
 
-    // ----- Concurrency -----
-
     @Test
     fun `handles many concurrent requests without cross-talk`() {
         val count = 64
@@ -205,8 +277,6 @@ class ConnectProtocolIntegrationTest {
             pool.shutdownNow()
         }
     }
-
-    // ----- Streaming edge cases -----
 
     @Test
     fun `server streaming over grpc-web yields messages then trailer`() {

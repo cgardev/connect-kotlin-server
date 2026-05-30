@@ -217,7 +217,7 @@ class ConnectDispatcher(
         val timeout = if (grpcWeb) grpcTimeoutMillis(request) else connectTimeoutMillis(request)
 
         when (entry.type) {
-            MethodType.UNARY -> streamUnary(out, entry, message, metadata, timeout, codec, responseCompression, grpcWeb)
+            MethodType.UNARY -> streamUnary(response, out, entry, message, metadata, timeout, codec, responseCompression, grpcWeb)
             MethodType.SERVER_STREAMING ->
                 streamServer(out, entry, message, metadata, timeout, codec, responseCompression, grpcWeb)
             else -> writeEndOfStream(
@@ -228,6 +228,7 @@ class ConnectDispatcher(
     }
 
     private fun streamUnary(
+        response: ConnectHttpResponse,
         out: OutputStream,
         entry: ConnectMethodEntry,
         message: Message,
@@ -239,6 +240,9 @@ class ConnectDispatcher(
     ) {
         try {
             val result = invoker.unary(entry, message, metadata, timeout)
+            // Leading metadata travels as response headers (still uncommitted here);
+            // trailing metadata rides the end-of-stream frame below.
+            result.headers?.let { writeLeadingHeaders(response, it) }
             writeMessageFrame(out, codec.serialize(result.message), compression)
             writeEndOfStream(out, grpcWeb, null, result.trailers)
         } catch (e: Exception) {

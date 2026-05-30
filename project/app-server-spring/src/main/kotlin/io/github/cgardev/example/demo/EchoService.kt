@@ -55,13 +55,14 @@ class EchoService : EchoServiceGrpc.EchoServiceImplBase() {
     }
 
     override fun fail(request: FailRequest, responseObserver: StreamObserver<EchoResponse>) {
+        val codeValue = if (request.grpcCode != 0) request.grpcCode else io.grpc.Status.Code.INVALID_ARGUMENT.value()
         val errorInfo = ErrorInfo.newBuilder()
             .setReason("DEMO_FAILURE")
-            .setDomain("connect.demo.v1")
+            .setDomain("cgardev.example.v1")
             .putMetadata("requestedReason", request.reason)
             .build()
         val status = com.google.rpc.Status.newBuilder()
-            .setCode(io.grpc.Status.Code.INVALID_ARGUMENT.value())
+            .setCode(codeValue)
             .setMessage("intentional failure: ${request.reason}")
             .addDetails(Any.pack(errorInfo))
             .build()

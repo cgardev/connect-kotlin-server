@@ -51,6 +51,8 @@ message CountResponse {
 
 message FailRequest {
   string reason = 1;
+  // The gRPC status code to fail with; defaults to INVALID_ARGUMENT (3) when 0.
+  int32 grpc_code = 2;
 }
 
 // Carries an arbitrary message inside a google.protobuf.Any, plus a label, so

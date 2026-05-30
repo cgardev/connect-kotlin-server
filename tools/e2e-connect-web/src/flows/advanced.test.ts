@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createClient } from "@connectrpc/connect";
+import { createClient, ConnectError, Code } from "@connectrpc/connect";
 import { create, createRegistry } from "@bufbuild/protobuf";
 import { anyPack, anyUnpack } from "@bufbuild/protobuf/wkt";
 import { connectTransport, grpcWebTransport } from "../transport.js";
@@ -59,4 +59,61 @@ describe("server streaming edge cases", () => {
       expect(numbers).toEqual([]);
     });
   }
+});
+
+describe("headers and trailers", () => {
+  for (const [name, client] of [
+    ["connect", connectBinary],
+    ["grpc-web", grpcWeb],
+  ] as const) {
+    it(`propagates request metadata to a response header and trailer over ${name}`, async () => {
+      let header: string | null = null;
+      let trailer: string | null = null;
+
+      const response = await client.echo(
+        { message: "m" },
+        {
+          headers: { "x-echo": "hi" },
+          onHeader: (headers) => {
+            header = headers.get("x-echo-header");
+          },
+          onTrailer: (trailers) => {
+            trailer = trailers.get("x-echo-trailer");
+          },
+        },
+      );
+
+      expect(response.message).toBe("echo: m");
+      expect(header).toBe("hi");
+      expect(trailer).toBe("hi");
+    });
+  }
+});
+
+describe("errors", () => {
+  for (const [reason, grpcCode, expected] of [
+    ["kaboom", 0, Code.InvalidArgument],
+    ["nope", 5, Code.NotFound],
+    ["denied", 7, Code.PermissionDenied],
+    ["who", 16, Code.Unauthenticated],
+  ] as const) {
+    it(`surfaces the Connect code ${expected}`, async () => {
+      try {
+        await connectBinary.fail({ reason, grpcCode });
+        expect.fail("expected the call to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConnectError);
+        expect((error as ConnectError).code).toBe(expected);
+      }
+    });
+  }
+
+  it("carries the failure message", async () => {
+    try {
+      await connectBinary.fail({ reason: "kaboom" });
+      expect.fail("expected the call to throw");
+    } catch (error) {
+      expect((error as ConnectError).rawMessage).toContain("kaboom");
+    }
+  });
 });

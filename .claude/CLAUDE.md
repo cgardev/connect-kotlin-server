@@ -98,6 +98,7 @@ export function validateConnectionParameters(host: string, port: number): boolea
     * `temporary` (not "tmp")
 3. Write clear, self-documenting code. Add comments only where the logic is not self-evident.
 4. Prefer simple, direct solutions over abstractions unless complexity is justified.
+5. Never use decorative section-divider or banner comments (for example `// ----- Errors across protocols -----`). Organize code with well-named functions, classes, or files instead.
 
 # Package Manager Policy
 
