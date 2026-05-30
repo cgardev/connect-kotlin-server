@@ -178,7 +178,7 @@ connect.server.enabled=false
 
 ## Why no servlet container?
 
-The Connect server manages its own embedded Netty HTTP/1.1 transport. Setting `spring.main.web-application-type=none` prevents Spring from trying to start an unnecessary servlet container (Tomcat, Jetty, etc.) and reduces startup time and memory footprint.
+The Connect server manages its own embedded Netty transport (HTTP/1.1, plus optional HTTP/2 cleartext). Setting `spring.main.web-application-type=none` prevents Spring from trying to start an unnecessary servlet container (Tomcat, Jetty, etc.) and reduces startup time and memory footprint.
 
 ## Example project
 

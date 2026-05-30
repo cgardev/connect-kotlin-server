@@ -6,10 +6,28 @@ package io.github.cgardev.library.connect.config
  * a host application maps its own configuration onto this type.
  */
 data class ConnectServerConfig(
-    /** Address the embedded Netty server binds to. */
+    /** Address the embedded servers bind to. */
     val host: String = "0.0.0.0",
-    /** Port the embedded Netty server binds to; `0` selects an ephemeral port. */
+    /** Port the Connect/gRPC-Web HTTP server binds to; `0` selects an ephemeral port. */
     val port: Int = 8080,
+    /**
+     * Serve HTTP/1.1 on [port]. The Connect HTTP server runs whenever HTTP/1.1
+     * and/or HTTP/2 is enabled.
+     */
+    val http1Enabled: Boolean = true,
+    /**
+     * Serve HTTP/2 cleartext (h2c) on [port]. Combined with [http1Enabled] the
+     * port negotiates between the two (via the `Upgrade` handshake and the HTTP/2
+     * preface); on its own it serves HTTP/2 only (prior-knowledge h2c).
+     */
+    val http2Enabled: Boolean = false,
+    /**
+     * Start a native gRPC server (HTTP/2 cleartext) on [grpcPort], exposing the
+     * same services over the classic gRPC protocol for server-to-server callers.
+     */
+    val grpcEnabled: Boolean = false,
+    /** Port the native gRPC server binds to (when [grpcEnabled]); `0` is ephemeral. */
+    val grpcPort: Int = 9090,
     /**
      * Base path the dispatcher serves under. RPCs live at
      * `<basePath><package>.<Service>/<Method>`; the default root keeps paths

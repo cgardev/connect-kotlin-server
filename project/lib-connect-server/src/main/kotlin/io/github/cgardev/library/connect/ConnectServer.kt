@@ -1,5 +1,6 @@
 package io.github.cgardev.library.connect
 
+import io.github.cgardev.library.connect.channel.GrpcServer
 import io.github.cgardev.library.connect.channel.InProcessGrpcChannel
 import io.github.cgardev.library.connect.codec.CodecRegistry
 import io.github.cgardev.library.connect.codec.CompressionRegistry
@@ -32,35 +33,56 @@ class ConnectServer(
     val config: ConnectServerConfig = ConnectServerConfig(),
 ) : AutoCloseable {
 
-    private val channel = InProcessGrpcChannel(services, interceptors, config.shutdownGraceMillis)
     val registry: ConnectMethodRegistry = ConnectMethodRegistry(services)
 
-    private val httpHandler: ConnectHttpHandler = run {
-        val invoker = InProcessInvoker { channel.channel }
+    private val httpEnabled = config.http1Enabled || config.http2Enabled
+
+    // The in-process channel + Netty HTTP server only exist when an HTTP protocol
+    // is enabled; the dispatcher invokes services through the in-process channel.
+    private val channel: InProcessGrpcChannel? =
+        if (httpEnabled) InProcessGrpcChannel(services, interceptors, config.shutdownGraceMillis) else null
+
+    private val nettyServer: ConnectNettyServer? = channel?.let { inProcess ->
+        val invoker = InProcessInvoker { inProcess.channel }
         val codecs = CodecRegistry(ProtoCodec, JsonCodec(registry.typeRegistry))
         val dispatcher = ConnectDispatcher(registry, invoker, codecs, CompressionRegistry(), ConnectWire(registry.typeRegistry), config)
-        ConnectHttpHandler(dispatcher, ConnectCors(config.cors))
+        val httpHandler = ConnectHttpHandler(dispatcher, ConnectCors(config.cors))
+        ConnectNettyServer(
+            handler = httpHandler,
+            host = config.host,
+            port = config.port,
+            maxContentLength = config.readMaxBytes.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
+            shutdownGraceMillis = config.shutdownGraceMillis,
+            http1 = config.http1Enabled,
+            http2 = config.http2Enabled,
+        )
     }
 
-    private val nettyServer = ConnectNettyServer(
-        handler = httpHandler,
-        host = config.host,
-        port = config.port,
-        maxContentLength = config.readMaxBytes.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
-        shutdownGraceMillis = config.shutdownGraceMillis,
-    )
+    // Optional native gRPC server, for server-to-server callers on a separate port.
+    private val grpcServer: GrpcServer? =
+        if (config.grpcEnabled) {
+            GrpcServer(services, interceptors, config.host, config.grpcPort, config.shutdownGraceMillis)
+        } else {
+            null
+        }
 
-    /** The port the server is listening on; valid after [start] (resolves ephemeral port 0). */
-    val boundPort: Int get() = nettyServer.boundPort
+    /** The Connect/gRPC-Web HTTP port; valid after [start]. Throws if no HTTP protocol is enabled. */
+    val boundPort: Int
+        get() = (nettyServer ?: error("HTTP server is disabled (enable http1Enabled and/or http2Enabled)")).boundPort
 
-    /** Starts the in-process gRPC channel and binds the Netty HTTP server. */
+    /** The native gRPC port, or null when the gRPC server is disabled; valid after [start]. */
+    val grpcBoundPort: Int? get() = grpcServer?.boundPort
+
+    /** Starts the enabled transports: the in-process channel + Netty HTTP server, and/or the gRPC server. */
     fun start() {
-        channel.start()
-        nettyServer.start()
+        channel?.start()
+        nettyServer?.start()
+        grpcServer?.start()
     }
 
     override fun close() {
-        runCatching { nettyServer.close() }
-        channel.close()
+        runCatching { grpcServer?.close() }
+        runCatching { nettyServer?.close() }
+        channel?.close()
     }
 }

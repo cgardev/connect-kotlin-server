@@ -41,7 +41,7 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 
 [`connect-kotlin`](https://github.com/connectrpc/connect-kotlin) provides a client, but the JVM has no native server-side Connect implementation. The standard workaround is to run a separate Go proxy (like [Vanguard](https://github.com/connectrpc/vanguard-go)) in front of your gRPC backend to transcode protocols—adding a network hop and operational complexity.
 
-`connect-kotlin-server` removes that hop entirely. It hosts your `io.grpc.BindableService`s on an in-process gRPC channel and serves them over Connect, Connect streaming, and gRPC-Web through an embedded Netty HTTP/1.1 server—all in the same JVM, with no proxy.
+`connect-kotlin-server` removes that hop entirely. It hosts your `io.grpc.BindableService`s on an in-process gRPC channel and serves them over Connect, Connect streaming, and gRPC-Web through an embedded Netty server (HTTP/1.1, with optional HTTP/2 cleartext and an optional native gRPC port)—all in the same JVM, with no proxy.
 
 ## Get started
 

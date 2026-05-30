@@ -21,13 +21,17 @@ dependencies {
     api("io.grpc:grpc-stub:$grpcVersion")
     implementation("io.grpc:grpc-core:$grpcVersion")
     implementation("io.grpc:grpc-inprocess:$grpcVersion")
+    // Native gRPC server (HTTP/2 cleartext) for the optional gRPC port.
+    implementation("io.grpc:grpc-netty-shaded:$grpcVersion")
 
     // Protocol buffers: message handling and proto <-> JSON conversion.
     api("com.google.protobuf:protobuf-java:$protobufVersion")
     implementation("com.google.protobuf:protobuf-java-util:$protobufVersion")
 
-    // Netty: the embedded HTTP transport that terminates the Connect protocols.
+    // Netty: the embedded HTTP transport that terminates the Connect protocols
+    // (codec-http2 enables serving HTTP/2 cleartext alongside HTTP/1.1).
     api("io.netty:netty-codec-http:$nettyVersion")
+    api("io.netty:netty-codec-http2:$nettyVersion")
 
     // JSON for the Connect error envelope.
     implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")

@@ -33,8 +33,10 @@ in front of a gRPC backend to transcode Connect/gRPC-Web into gRPC.
 
 - **Protocols:** Connect (unary, non-enveloped), Connect streaming, and gRPC-Web.
 - **Codecs:** Protobuf binary (`application/proto`) and Protobuf-JSON (`application/json`).
-- **Transport:** embedded Netty HTTP/1.1; requests run on virtual threads off the event
-  loop, server-streaming is delivered via chunked transfer.
+- **Transport:** embedded Netty serving HTTP/1.1 and, optionally, HTTP/2 cleartext (h2c) on
+  the same port; requests run on virtual threads off the event loop and server-streaming is
+  delivered via chunked transfer. An optional native gRPC port can expose the same services
+  over classic gRPC for server-to-server callers.
 - **Error model:** the full Connect error JSON (`code` / `message` / `details`), gRPC-Web
   trailers, and Connect end-of-stream — mapped from `io.grpc.Status`, verified against the
   `connect-go` reference.
@@ -126,6 +128,31 @@ to the in-process pipeline, exactly as a real gRPC server would. Everything is t
 the `connect.server.*` properties (`port`, `cors.*`, `compress-min-bytes`, …).
 
 For a non-Spring application, build a [`ConnectServer`](#quick-start) directly as shown above.
+
+## Transport modes
+
+Each transport has an explicit enable, so you can serve browsers, server-to-server callers,
+or both, in whatever combination you need:
+
+| Property | Default | Effect |
+|----------|:-------:|--------|
+| `connect.server.http1-enabled` | `true`  | Serve HTTP/1.1 on `connect.server.port`. |
+| `connect.server.http2-enabled` | `false` | Serve HTTP/2 cleartext (h2c) on the same port. |
+| `connect.server.grpc-enabled`  | `false` | Start a native gRPC server (h2c) on `connect.server.grpc-port`. |
+
+Common setups:
+
+- **HTTP/1.1 + HTTP/2 on one port (h2c):** `http1-enabled=true`, `http2-enabled=true` — browsers
+  use HTTP/1.1, server-to-server callers negotiate HTTP/2 (via the `Upgrade` handshake or the
+  HTTP/2 preface).
+- **HTTP/2 only:** `http1-enabled=false`, `http2-enabled=true` — pure h2c (prior knowledge);
+  plain HTTP/1.1 connections are rejected.
+- **Two ports (web + gRPC):** keep `http1-enabled=true` and set `grpc-enabled=true` — the
+  Connect/gRPC-Web server serves browsers on `port` while a native gRPC server serves
+  server-to-server callers over classic gRPC on `grpc-port`.
+
+With the plain `ConnectServer`, set `http1Enabled` / `http2Enabled` / `grpcEnabled` /
+`grpcPort` on `ConnectServerConfig`; `boundPort` and `grpcBoundPort` report the bound ports.
 
 ## Trying the example
 

@@ -14,6 +14,14 @@ data class ConnectServerProperties(
     val enabled: Boolean = true,
     val host: String = "0.0.0.0",
     val port: Int = 8080,
+    /** Serve HTTP/1.1 on [port]. */
+    val http1Enabled: Boolean = true,
+    /** Serve HTTP/2 cleartext (h2c) on [port]; on its own serves HTTP/2 only. */
+    val http2Enabled: Boolean = false,
+    /** Start a native gRPC server (h2c) on [grpcPort] for server-to-server callers. */
+    val grpcEnabled: Boolean = false,
+    /** Port the native gRPC server binds to when [grpcEnabled]; `0` is ephemeral. */
+    val grpcPort: Int = 9090,
     val basePath: String = "/",
     val requireProtocolVersion: Boolean = false,
     val getEnabled: Boolean = true,
@@ -34,6 +42,10 @@ data class ConnectServerProperties(
     fun toConfig(): ConnectServerConfig = ConnectServerConfig(
         host = host,
         port = port,
+        http1Enabled = http1Enabled,
+        http2Enabled = http2Enabled,
+        grpcEnabled = grpcEnabled,
+        grpcPort = grpcPort,
         basePath = basePath,
         requireProtocolVersion = requireProtocolVersion,
         getEnabled = getEnabled,

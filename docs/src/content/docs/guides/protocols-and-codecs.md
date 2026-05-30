@@ -104,7 +104,7 @@ After the final message, gRPC-Web sends a single envelope with the `FLAG_GRPC_WE
 
 **Server streaming** requires an enveloped protocol (Connect streaming or gRPC-Web); the non-enveloped Connect protocol does not support streaming.
 
-**Client streaming and bidirectional** RPC are not supported. These require full HTTP/2 support, which the embedded Netty server does not provide (HTTP/1.1 only).
+**Client streaming and bidirectional** RPC are not supported: the dispatcher handles unary and server-streaming only. (The embedded server can serve HTTP/2 cleartext when `connect.server.http2` is enabled, but these RPC kinds are not yet wired.)
 
 ## GET for Idempotent Unary Methods
 

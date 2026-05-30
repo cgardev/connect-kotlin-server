@@ -36,6 +36,8 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("com.fasterxml.jackson.core:jackson-databind")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    // Transport for the gRPC client used by Http2AndGrpcPortTest.
+    testRuntimeOnly("io.grpc:grpc-netty-shaded:$grpcVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

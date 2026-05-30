@@ -3,22 +3,19 @@ package io.github.cgardev.library.connect.netty
 import io.github.cgardev.library.connect.web.ConnectHttpHandler
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
-import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
-import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import io.netty.handler.codec.http.HttpObjectAggregator
-import io.netty.handler.codec.http.HttpServerCodec
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
- * The embedded Netty HTTP/1.1 server that terminates the Connect protocols. It
- * aggregates each request, then dispatches it on a virtual-thread executor (so
- * the blocking in-process gRPC calls stay off the event loop) and streams the
- * response back through the channel.
+ * The embedded Netty server that terminates the Connect protocols. It serves
+ * HTTP/1.1 and, when [http2] is enabled, HTTP/2 cleartext (h2c) on the same
+ * port. Each request is dispatched on a virtual-thread executor (so the blocking
+ * in-process gRPC calls stay off the event loop) and the response is streamed
+ * back through the channel.
  */
 class ConnectNettyServer(
     private val handler: ConnectHttpHandler,
@@ -26,6 +23,8 @@ class ConnectNettyServer(
     private val port: Int,
     private val maxContentLength: Int,
     private val shutdownGraceMillis: Long,
+    private val http1: Boolean,
+    private val http2: Boolean,
 ) : AutoCloseable {
 
     private val log = LoggerFactory.getLogger(ConnectNettyServer::class.java)
@@ -43,17 +42,12 @@ class ConnectNettyServer(
         val bootstrap = ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
-            .childHandler(object : ChannelInitializer<SocketChannel>() {
-                override fun initChannel(ch: SocketChannel) {
-                    ch.pipeline().addLast(HttpServerCodec())
-                    ch.pipeline().addLast(HttpObjectAggregator(maxContentLength))
-                    ch.pipeline().addLast(ConnectChannelHandler(handler, dispatchExecutor))
-                }
-            })
+            .childHandler(ConnectChannelInitializer(handler, dispatchExecutor, maxContentLength, http1, http2))
         val bound = bootstrap.bind(host, port).sync().channel()
         channel = bound
         boundPort = (bound.localAddress() as InetSocketAddress).port
-        log.info("Connect Netty server listening on {}:{}", host, boundPort)
+        val protocols = listOfNotNull("HTTP/1.1".takeIf { http1 }, "h2c".takeIf { http2 }).joinToString(" + ")
+        log.info("Connect Netty server listening on {}:{} ({})", host, boundPort, protocols)
     }
 
     override fun close() {

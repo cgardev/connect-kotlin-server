@@ -15,6 +15,10 @@ For non-Spring applications, construct a `ConnectServerConfig` directly and pass
 |----------|------|---------|-------------|
 | `host` | `String` | `"0.0.0.0"` | Address the embedded Netty server binds to. |
 | `port` | `Int` | `8080` | Port the embedded Netty server binds to; `0` selects an ephemeral port. |
+| `http1Enabled` | `Boolean` | `true` | Serve HTTP/1.1 on `port`. |
+| `http2Enabled` | `Boolean` | `false` | Serve HTTP/2 cleartext (h2c) on `port`. Combined with `http1Enabled` the port negotiates between them; on its own it serves HTTP/2 only (prior knowledge). |
+| `grpcEnabled` | `Boolean` | `false` | Start a native gRPC server (HTTP/2 cleartext) on `grpcPort`, exposing the same services over classic gRPC for server-to-server callers. |
+| `grpcPort` | `Int` | `9090` | Port the native gRPC server binds to when `grpcEnabled`; `0` selects an ephemeral port. |
 | `basePath` | `String` | `"/"` | Base path the dispatcher serves under. RPCs live at `<basePath><package>.<Service>/<Method>`; the default keeps paths equal to the gRPC full method name. |
 | `requireProtocolVersion` | `Boolean` | `false` | Require `Connect-Protocol-Version: 1` header on Connect unary requests when `true`. |
 | `getEnabled` | `Boolean` | `true` | Allow idempotent (`NO_SIDE_EFFECTS`) unary methods to be invoked via HTTP GET (see [GET idempotency](#get-idempotency)). |
