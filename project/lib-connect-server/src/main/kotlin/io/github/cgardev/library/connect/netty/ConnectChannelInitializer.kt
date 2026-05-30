@@ -16,9 +16,12 @@ import io.netty.handler.codec.http2.Http2FrameCodecBuilder
 import io.netty.handler.codec.http2.Http2MultiplexHandler
 import io.netty.handler.codec.http2.Http2ServerUpgradeCodec
 import io.netty.handler.codec.http2.Http2StreamFrameToHttpObjectCodec
+import io.netty.handler.timeout.IdleStateEvent
+import io.netty.handler.timeout.IdleStateHandler
 import io.netty.util.AsciiString
 import io.netty.util.ReferenceCountUtil
 import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
 
 /**
  * Builds the per-connection Netty pipeline according to which protocols are
@@ -37,6 +40,7 @@ class ConnectChannelInitializer(
     private val maxContentLength: Int,
     private val http1: Boolean,
     private val http2: Boolean,
+    private val idleTimeoutMillis: Long,
 ) : ChannelInitializer<SocketChannel>() {
 
     init {
@@ -44,6 +48,13 @@ class ConnectChannelInitializer(
     }
 
     override fun initChannel(ch: SocketChannel) {
+        // Drop connections that go idle (no reads and no writes) for too long, so
+        // a slow-loris client cannot pin a connection open indefinitely without
+        // ever completing a request.
+        if (idleTimeoutMillis > 0) {
+            ch.pipeline().addLast(IdleStateHandler(0, 0, idleTimeoutMillis, TimeUnit.MILLISECONDS))
+            ch.pipeline().addLast(CloseOnIdleHandler())
+        }
         when {
             http1 && !http2 -> {
                 ch.pipeline().addLast(HttpServerCodec())
@@ -71,6 +82,17 @@ class ConnectChannelInitializer(
     }
 
     private fun connectHandler() = ConnectChannelHandler(handler, executor)
+
+    /** Closes a connection once [IdleStateHandler] reports it has gone idle. */
+    private class CloseOnIdleHandler : io.netty.channel.ChannelInboundHandlerAdapter() {
+        override fun userEventTriggered(ctx: ChannelHandlerContext, event: Any) {
+            if (event is IdleStateEvent) {
+                ctx.close()
+            } else {
+                ctx.fireUserEventTriggered(event)
+            }
+        }
+    }
 
     /** Pipeline applied to each inbound HTTP/2 stream so it surfaces as a FullHttpRequest. */
     private fun http2StreamInitializer() = object : ChannelInitializer<Channel>() {

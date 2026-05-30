@@ -16,7 +16,14 @@ import java.util.zip.GZIPOutputStream
 interface Compression {
     val name: String
     fun compress(data: ByteArray): ByteArray
-    fun decompress(data: ByteArray): ByteArray
+
+    /**
+     * Decompresses [data], aborting with `resource_exhausted` once the output
+     * would exceed [maxOutputBytes]. The bound is essential: the compressed input
+     * is already size-limited, but without an output cap a small "zip bomb" can
+     * decompress to gigabytes and exhaust the heap.
+     */
+    fun decompress(data: ByteArray, maxOutputBytes: Long): ByteArray
 }
 
 object GzipCompression : Compression {
@@ -28,8 +35,22 @@ object GzipCompression : Compression {
         return output.toByteArray()
     }
 
-    override fun decompress(data: ByteArray): ByteArray {
-        GZIPInputStream(ByteArrayInputStream(data)).use { return it.readBytes() }
+    override fun decompress(data: ByteArray, maxOutputBytes: Long): ByteArray {
+        GZIPInputStream(ByteArrayInputStream(data)).use { input ->
+            val output = ByteArrayOutputStream(minOf(data.size.toLong() * 2, 64 * 1024).toInt().coerceAtLeast(64))
+            val buffer = ByteArray(8192)
+            var total = 0L
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) break
+                total += read
+                if (total > maxOutputBytes) {
+                    throw ConnectException(ConnectCode.RESOURCE_EXHAUSTED, "decompressed size exceeds limit")
+                }
+                output.write(buffer, 0, read)
+            }
+            return output.toByteArray()
+        }
     }
 }
 

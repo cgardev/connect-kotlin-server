@@ -55,6 +55,7 @@ class ConnectServer(
             shutdownGraceMillis = config.shutdownGraceMillis,
             http1 = config.http1Enabled,
             http2 = config.http2Enabled,
+            idleTimeoutMillis = config.idleTimeoutMillis,
         )
     }
 

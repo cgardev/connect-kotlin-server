@@ -35,10 +35,16 @@ object Envelope {
         out.write(data)
     }
 
-    /** Reads all frames until the stream ends. A truncated frame is a protocol error. */
-    fun readAll(input: InputStream): List<Frame> {
+    /**
+     * Reads all frames until the stream ends. A truncated frame is a protocol
+     * error. [maxBytes] bounds both each frame and the cumulative payload size,
+     * so an attacker-controlled length prefix cannot drive an unbounded
+     * allocation before the (already size-limited) body is even read.
+     */
+    fun readAll(input: InputStream, maxBytes: Long): List<Frame> {
         val data = DataInputStream(input)
         val frames = ArrayList<Frame>()
+        var total = 0L
         while (true) {
             val flags = data.read()
             if (flags == -1) break
@@ -46,6 +52,10 @@ object Envelope {
                 readLength(data)
             } catch (e: EOFException) {
                 throw ConnectException(ConnectCode.INVALID_ARGUMENT, "truncated envelope prefix", cause = e)
+            }
+            total += length
+            if (length > maxBytes || total > maxBytes) {
+                throw ConnectException(ConnectCode.RESOURCE_EXHAUSTED, "envelope frame exceeds size limit")
             }
             val payload = ByteArray(length)
             try {

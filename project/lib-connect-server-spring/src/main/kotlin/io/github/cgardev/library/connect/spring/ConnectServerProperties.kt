@@ -27,14 +27,16 @@ data class ConnectServerProperties(
     val getEnabled: Boolean = true,
     val compressMinBytes: Int = 1024,
     val readMaxBytes: Long = 4L * 1024 * 1024,
+    /** Close a connection idle (no reads/writes) for this long; `0` disables it. */
+    val idleTimeoutMillis: Long = 60_000,
     val shutdownGraceMillis: Long = 5_000,
     val cors: Cors = Cors(),
 ) {
     data class Cors(
         val enabled: Boolean = true,
         val allowedOrigins: List<String> = listOf("*"),
-        val allowCredentials: Boolean = true,
-        val allowPrivateNetwork: Boolean = true,
+        val allowCredentials: Boolean = false,
+        val allowPrivateNetwork: Boolean = false,
         val maxAgeSeconds: Long = 4 * 60 * 60,
     )
 
@@ -51,6 +53,7 @@ data class ConnectServerProperties(
         getEnabled = getEnabled,
         compressMinBytes = compressMinBytes,
         readMaxBytes = readMaxBytes,
+        idleTimeoutMillis = idleTimeoutMillis,
         shutdownGraceMillis = shutdownGraceMillis,
         cors = ConnectServerConfig.Cors(
             enabled = cors.enabled,

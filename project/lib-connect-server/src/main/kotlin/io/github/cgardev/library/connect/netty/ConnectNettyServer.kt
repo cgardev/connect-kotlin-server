@@ -25,6 +25,7 @@ class ConnectNettyServer(
     private val shutdownGraceMillis: Long,
     private val http1: Boolean,
     private val http2: Boolean,
+    private val idleTimeoutMillis: Long,
 ) : AutoCloseable {
 
     private val log = LoggerFactory.getLogger(ConnectNettyServer::class.java)
@@ -42,7 +43,7 @@ class ConnectNettyServer(
         val bootstrap = ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel::class.java)
-            .childHandler(ConnectChannelInitializer(handler, dispatchExecutor, maxContentLength, http1, http2))
+            .childHandler(ConnectChannelInitializer(handler, dispatchExecutor, maxContentLength, http1, http2, idleTimeoutMillis))
         val bound = bootstrap.bind(host, port).sync().channel()
         channel = bound
         boundPort = (bound.localAddress() as InetSocketAddress).port

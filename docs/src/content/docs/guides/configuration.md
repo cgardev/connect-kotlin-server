@@ -23,12 +23,13 @@ For non-Spring applications, construct a `ConnectServerConfig` directly and pass
 | `requireProtocolVersion` | `Boolean` | `false` | Require `Connect-Protocol-Version: 1` header on Connect unary requests when `true`. |
 | `getEnabled` | `Boolean` | `true` | Allow idempotent (`NO_SIDE_EFFECTS`) unary methods to be invoked via HTTP GET (see [GET idempotency](#get-idempotency)). |
 | `compressMinBytes` | `Int` | `1024` | Only compress responses whose serialized size reaches this threshold (in bytes). |
-| `readMaxBytes` | `Long` | `4194304` (4 MiB) | Maximum accepted (decompressed) request size, in bytes. |
+| `readMaxBytes` | `Long` | `4194304` (4 MiB) | Maximum accepted (decompressed) request size, in bytes. Also bounds each decompressed envelope frame (see [Request size limits](#request-size-limits)). |
+| `idleTimeoutMillis` | `Long` | `60000` (60 s) | Close a connection idle (no reads and no writes) for this long; `0` disables it (see [Idle timeout](#idle-timeout)). |
 | `shutdownGraceMillis` | `Long` | `5000` | Grace period (in milliseconds) awaited when shutting down the in-process gRPC server/channel. |
 | `cors.enabled` | `Boolean` | `true` | Master switch for CORS handling. |
-| `cors.allowedOrigins` | `List<String>` | `["*"]` | Allowed origins; `*` echoes the request origin (see [CORS defaults](#cors-defaults)). |
-| `cors.allowCredentials` | `Boolean` | `true` | Include `Access-Control-Allow-Credentials: true` in responses. |
-| `cors.allowPrivateNetwork` | `Boolean` | `true` | Include `Access-Control-Request-Private-Network` handling in CORS preflight. |
+| `cors.allowedOrigins` | `List<String>` | `["*"]` | Allowed origins; `*` matches any origin only when `allowCredentials` is `false` (see [CORS defaults](#cors-defaults)). |
+| `cors.allowCredentials` | `Boolean` | `false` | Include `Access-Control-Allow-Credentials: true` in responses. When `true`, `*` no longer matches arbitrary origins. |
+| `cors.allowPrivateNetwork` | `Boolean` | `false` | Include `Access-Control-Request-Private-Network` handling in CORS preflight. |
 | `cors.maxAgeSeconds` | `Long` | `14400` (4 hours) | Value for `Access-Control-Max-Age` cache header. |
 
 ## Spring Boot Configuration
@@ -46,12 +47,13 @@ connect:
     getEnabled: true
     compressMinBytes: 1024
     readMaxBytes: 4194304
+    idleTimeoutMillis: 60000
     shutdownGraceMillis: 5000
     cors:
       enabled: true
       allowedOrigins: [ "*" ]
-      allowCredentials: true
-      allowPrivateNetwork: true
+      allowCredentials: false
+      allowPrivateNetwork: false
       maxAgeSeconds: 14400
 ```
 
@@ -66,11 +68,12 @@ connect.server.requireProtocolVersion=false
 connect.server.getEnabled=true
 connect.server.compressMinBytes=1024
 connect.server.readMaxBytes=4194304
+connect.server.idleTimeoutMillis=60000
 connect.server.shutdownGraceMillis=5000
 connect.server.cors.enabled=true
 connect.server.cors.allowedOrigins[0]=*
-connect.server.cors.allowCredentials=true
-connect.server.cors.allowPrivateNetwork=true
+connect.server.cors.allowCredentials=false
+connect.server.cors.allowPrivateNetwork=false
 connect.server.cors.maxAgeSeconds=14400
 ```
 
@@ -111,12 +114,12 @@ fun main() {
 
 ## CORS Defaults
 
-By default, the Connect server applies **permissive CORS** handling suited for browser clients:
+By default, the Connect server applies CORS handling suited for browser clients, **without credentials**:
 
 - `cors.enabled = true` — CORS is active by default.
-- `cors.allowedOrigins = ["*"]` — The wildcard `*` echoes the request `Origin` header back in the response, allowing any origin to make requests with credentials.
-- `cors.allowCredentials = true` — Cookies and credentials are permitted.
-- `cors.allowPrivateNetwork = true` — Private network access (RFC 1918) is allowed.
+- `cors.allowedOrigins = ["*"]` — The wildcard `*` allows any origin. Because credentials are off, the server answers with `Access-Control-Allow-Origin: *`.
+- `cors.allowCredentials = false` — Cookies and credentials are **not** permitted by default.
+- `cors.allowPrivateNetwork = false` — Private network access (RFC 1918) is **not** advertised by default.
 - `cors.maxAgeSeconds = 14400` (4 hours) — Preflight responses are cached for up to 4 hours.
 
 To restrict CORS to specific origins, replace the wildcard with a list of allowed origins:
@@ -139,8 +142,17 @@ connect:
       enabled: false
 ```
 
-> [!NOTE]
-> When `allowedOrigins` contains `*`, credentials (`allowCredentials: true`) are only allowed if the client explicitly opts in via `Access-Control-Allow-Credentials`. The server echoes the request origin to satisfy the browser's CORS security model.
+> [!CAUTION]
+> When `allowCredentials` is `true`, the wildcard `*` no longer matches arbitrary origins: a request is allowed only when its `Origin` is **explicitly listed** in `allowedOrigins`. This prevents the server from reflecting an attacker-controlled origin together with `Access-Control-Allow-Credentials: true`. To support credentialed cross-origin requests, enumerate the exact origins:
+>
+> ```yaml
+> connect:
+>   server:
+>     cors:
+>       allowCredentials: true
+>       allowedOrigins:
+>         - https://app.example.com
+> ```
 
 ## Compression
 
@@ -177,7 +189,13 @@ To disable GET entirely, set `getEnabled = false`.
 
 ## Request Size Limits
 
-The `readMaxBytes` limit (default 4 MiB) applies to the **decompressed** request body. If a client sends a request compressed with gzip, the limit is checked after decompression. Requests exceeding this limit are rejected with HTTP 413 (Payload Too Large).
+The `readMaxBytes` limit (default 4 MiB) applies to the **decompressed** request body. It is enforced at three points, so an attacker cannot bypass it:
+
+- The raw request body, before decompression.
+- The total decompressed output — gzip decompression aborts with `resource_exhausted` once the output would exceed the limit, so a small "zip bomb" cannot expand to gigabytes.
+- Each enveloped (streaming / gRPC-Web) frame — the length prefix is checked against the limit *before* the frame buffer is allocated, so a forged length cannot drive an unbounded allocation.
+
+Requests exceeding the limit are rejected with `resource_exhausted` (HTTP 429).
 
 For large file uploads or streaming workloads, increase `readMaxBytes`:
 
@@ -185,6 +203,18 @@ For large file uploads or streaming workloads, increase `readMaxBytes`:
 connect:
   server:
     readMaxBytes: 100000000  # 100 MiB
+```
+
+## Idle Timeout
+
+The `idleTimeoutMillis` limit (default 60 seconds) closes any connection that has neither read nor written for that long. This defends against slow-loris-style clients that open connections and hold them open without completing a request, exhausting the connection pool.
+
+Tune it to the slowest legitimate idle period your clients need between frames (for example, a long-lived server stream with sparse messages), and set it to `0` to disable the timeout entirely:
+
+```yaml
+connect:
+  server:
+    idleTimeoutMillis: 120000  # 2 minutes
 ```
 
 ## Graceful Shutdown

@@ -5,10 +5,15 @@ import io.github.cgardev.library.connect.transport.ConnectHttpRequest
 import io.github.cgardev.library.connect.transport.ConnectHttpResponse
 
 /**
- * Permissive CORS handling for browser-based Connect / gRPC-Web clients. Mirrors
- * the previous Go proxy: echoes the request origin (so credentials are allowed),
- * permits the protocol headers, and exposes the headers that carry Connect and
- * gRPC-Web response metadata. Transport-neutral — no framework dependency.
+ * CORS handling for browser-based Connect / gRPC-Web clients. Permits the
+ * protocol headers and exposes the headers that carry Connect and gRPC-Web
+ * response metadata. Transport-neutral — no framework dependency.
+ *
+ * The wildcard origin (`*`) only matches arbitrary origins when credentials are
+ * disabled. With [ConnectServerConfig.Cors.allowCredentials] enabled, a request
+ * is allowed only when its `Origin` is explicitly listed, never via `*` — this
+ * avoids reflecting an attacker-controlled origin together with
+ * `Access-Control-Allow-Credentials: true`.
  */
 class ConnectCors(private val cors: ConnectServerConfig.Cors) {
 
@@ -46,7 +51,11 @@ class ConnectCors(private val cors: ConnectServerConfig.Cors) {
     }
 
     private fun isOriginAllowed(origin: String): Boolean =
-        cors.allowedOrigins.contains("*") || cors.allowedOrigins.contains(origin)
+        if (cors.allowCredentials) {
+            cors.allowedOrigins.contains(origin)
+        } else {
+            cors.allowedOrigins.contains("*") || cors.allowedOrigins.contains(origin)
+        }
 
     private fun allowedOriginValue(origin: String): String =
         if (cors.allowedOrigins.contains("*") && !cors.allowCredentials) "*" else origin

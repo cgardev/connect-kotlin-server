@@ -40,8 +40,9 @@ in front of a gRPC backend to transcode Connect/gRPC-Web into gRPC.
 - **Error model:** the full Connect error JSON (`code` / `message` / `details`), gRPC-Web
   trailers, and Connect end-of-stream — mapped from `io.grpc.Status`, verified against the
   `connect-go` reference.
-- **Extras:** `GET` for idempotent (`NO_SIDE_EFFECTS`) unary methods, gzip, permissive CORS
-  for browser clients, request metadata ↔ gRPC `Metadata`, and a liveness probe.
+- **Extras:** `GET` for idempotent (`NO_SIDE_EFFECTS`) unary methods, gzip (with a bounded,
+  zip-bomb-safe decoder), CORS for browser clients (credentials off by default), request
+  metadata ↔ gRPC `Metadata`, an idle-connection timeout, and a liveness probe.
 - **No framework lock-in:** the core library has **zero dependency on Spring or the Servlet
   API**. The only Spring code lives in the example app.
 
