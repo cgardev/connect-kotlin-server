@@ -149,6 +149,16 @@ curl 'localhost:8080/cgardev.example.v1.EchoService/GetServerInfo?encoding=json&
 ./gradlew build      # compile + test every module
 ```
 
+The JVM tests in `app-server-spring` already drive the server over Connect, Connect
+streaming and gRPC-Web. In addition, `tools/e2e-connect-web` is an end-to-end suite that
+hits a running instance with the real [`@connectrpc/connect-web`](https://www.npmjs.com/package/@connectrpc/connect-web)
+client — the same library a browser uses — across both protocols and both the proto-binary
+and JSON encodings. It builds and launches the server itself:
+
+```bash
+cd tools/e2e-connect-web && pnpm install && pnpm test
+```
+
 ## Project layout
 
 ```
