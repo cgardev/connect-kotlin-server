@@ -123,7 +123,8 @@ class ConnectDispatcher(
             ?: throw ConnectException(ConnectCode.INTERNAL, "no codec for ${negotiation.codecName}")
 
         var body = readBody(request)
-        compressions.resolveOrReject(request.header(ConnectHeaders.CONTENT_ENCODING))?.let { body = it.decompress(body) }
+        compressions.resolveOrReject(request.header(ConnectHeaders.CONTENT_ENCODING))
+            ?.let { body = it.decompress(body, config.readMaxBytes) }
         val message = codec.deserialize(body, entry.requestPrototype)
 
         invokeUnaryAndWrite(request, response, entry, message, codec, negotiation.responseContentType)
@@ -150,7 +151,8 @@ class ConnectDispatcher(
         } else {
             rawMessage.toByteArray(StandardCharsets.UTF_8)
         }
-        compressions.resolveOrReject(request.queryParam("compression"))?.let { body = it.decompress(body) }
+        compressions.resolveOrReject(request.queryParam("compression"))
+            ?.let { body = it.decompress(body, config.readMaxBytes) }
         val message = codec.deserialize(body, entry.requestPrototype)
 
         response.addHeader("Vary", ConnectHeaders.ACCEPT_ENCODING)
@@ -278,7 +280,7 @@ class ConnectDispatcher(
         codec: ConnectCodec,
         compression: Compression?,
     ): Message {
-        val frames = Envelope.readAll(ByteArrayInputStream(readBody(request)))
+        val frames = Envelope.readAll(ByteArrayInputStream(readBody(request)), config.readMaxBytes)
         val dataFrame = frames.firstOrNull {
             it.flags and Envelope.FLAG_GRPC_WEB_TRAILER == 0 && it.flags and Envelope.FLAG_CONNECT_END_STREAM == 0
         } ?: throw ConnectException(ConnectCode.INVALID_ARGUMENT, "missing request message")
@@ -286,7 +288,7 @@ class ConnectDispatcher(
         if (dataFrame.flags and Envelope.FLAG_COMPRESSED != 0) {
             // A compressed frame with no negotiated decoder is a protocol error on the server side.
             bytes = (compression ?: throw ConnectException(ConnectCode.INTERNAL, "compressed frame without a negotiated encoding"))
-                .decompress(bytes)
+                .decompress(bytes, config.readMaxBytes)
         }
         return codec.deserialize(bytes, entry.requestPrototype)
     }

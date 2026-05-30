@@ -40,18 +40,28 @@ data class ConnectServerConfig(
     val getEnabled: Boolean = true,
     /** Only compress responses whose serialized size reaches this threshold. */
     val compressMinBytes: Int = 1024,
-    /** Maximum accepted (decompressed) request size, in bytes. */
+    /** Maximum accepted request size after decompression, in bytes. Also bounds each envelope frame. */
     val readMaxBytes: Long = 4L * 1024 * 1024,
+    /**
+     * Close a connection that has been idle (no reads and no writes) for this
+     * long, to defend against slow/stalled connections. `0` disables it.
+     */
+    val idleTimeoutMillis: Long = 60_000,
     /** Grace period awaited when shutting down the in-process gRPC server/channel. */
     val shutdownGraceMillis: Long = 5_000,
     val cors: Cors = Cors(),
 ) {
     data class Cors(
         val enabled: Boolean = true,
-        /** Allowed origins; `*` echoes the request origin (required with credentials). */
+        /** Allowed origins. `*` matches any origin only when [allowCredentials] is false. */
         val allowedOrigins: List<String> = listOf("*"),
-        val allowCredentials: Boolean = true,
-        val allowPrivateNetwork: Boolean = true,
+        /**
+         * Allow credentialed (cookie/Authorization) cross-origin requests. When true, `*`
+         * does NOT match arbitrary origins — only origins explicitly listed in
+         * [allowedOrigins] are permitted, to avoid reflecting any origin with credentials.
+         */
+        val allowCredentials: Boolean = false,
+        val allowPrivateNetwork: Boolean = false,
         val maxAgeSeconds: Long = 4 * 60 * 60,
     )
 }
