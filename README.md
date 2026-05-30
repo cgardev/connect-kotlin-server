@@ -5,7 +5,14 @@ and Connect streaming — **natively from the JVM**, directly on top of your exi
 `grpc-java` services. No sidecar, no Go transcoding proxy.
 
 [![CI](https://github.com/cgardev/connect-kotlin-server/actions/workflows/ci.yml/badge.svg)](https://github.com/cgardev/connect-kotlin-server/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#disclaimer)
+
+> [!WARNING]
+> **Alpha.** This project is in early, active development. The public API, wire
+> behaviour and module layout may change without notice between releases, and it
+> has not been hardened for production use. Pin an exact version and review the
+> release notes before upgrading. See the [disclaimer](#disclaimer).
 
 ## Why
 
@@ -138,6 +145,16 @@ is verified simply by proving ownership of the `cgardev` GitHub account through 
 Central Portal — no custom domain required. Maven Central additionally needs a GPG signing
 key provided through the `SIGNING_KEY` / `SIGNING_PASSWORD` environment variables.
 See [`.github/workflows/publish.yml`](.github/workflows/publish.yml).
+
+## Disclaimer
+
+This is **alpha software, provided "as is"**, without warranty of any kind, express or
+implied, including but not limited to the warranties of merchantability and fitness for a
+particular purpose. To the maximum extent permitted by applicable law, the authors and
+contributors shall **not be liable** for any claim, damages, data loss or other liability,
+whether in an action of contract, tort or otherwise, arising from, out of or in connection
+with the software or its use. **You use it at your own risk.** See Sections 7 and 8 of the
+[Apache License 2.0](LICENSE) for the full terms.
 
 ## License
 
