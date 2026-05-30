@@ -52,11 +52,26 @@ class ConnectNettyServer(
     }
 
     override fun close() {
+        // 1. Stop accepting new connections; in-flight requests keep their channels.
         runCatching { channel?.close()?.sync() }
+
+        // 2. Drain the dispatch executor BEFORE the event loops: in-flight requests
+        //    need the event loops alive to write their responses. Wait up to the
+        //    grace period for them to finish, then force termination.
+        dispatchExecutor.shutdown()
+        try {
+            if (!dispatchExecutor.awaitTermination(shutdownGraceMillis, TimeUnit.MILLISECONDS)) {
+                dispatchExecutor.shutdownNow()
+            }
+        } catch (e: InterruptedException) {
+            dispatchExecutor.shutdownNow()
+            Thread.currentThread().interrupt()
+        }
+
+        // 3. Now tear down the Netty event loops.
         val quietMillis = (shutdownGraceMillis / 4).coerceAtLeast(0)
         workerGroup.shutdownGracefully(quietMillis, shutdownGraceMillis, TimeUnit.MILLISECONDS)
         bossGroup.shutdownGracefully(quietMillis, shutdownGraceMillis, TimeUnit.MILLISECONDS)
-        dispatchExecutor.shutdownNow()
         log.info("Connect Netty server stopped")
     }
 }
