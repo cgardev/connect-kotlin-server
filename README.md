@@ -14,6 +14,10 @@ and Connect streaming — **natively from the JVM**, directly on top of your exi
 > has not been hardened for production use. Pin an exact version and review the
 > release notes before upgrading. See the [disclaimer](#disclaimer).
 
+📖 **Documentation:** the full guide lives in [`docs/`](docs/) — an Astro Starlight site
+(getting started, architecture, protocols, Spring Boot, configuration, error handling and
+API reference).
+
 ## Why
 
 [`connect-kotlin`](https://github.com/connectrpc/connect-kotlin) is **client-only** —

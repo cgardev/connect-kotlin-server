@@ -1,0 +1,52 @@
+---
+title: "connect-kotlin-server"
+description: "Native Connect and gRPC-Web server for the JVM with zero dependencies on Spring or servlets."
+template: splash
+hero:
+  tagline: "Serve the Connect protocol and gRPC-Web natively on the JVM — directly on top of your grpc-java services. No proxy, no Spring lock-in."
+  actions:
+    - text: Get started
+      link: /connect-kotlin-server/getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/cgardev/connect-kotlin-server
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+	<Card title="Native Connect & gRPC-Web">
+		Serve the Connect protocol, gRPC-Web, and Connect streaming directly from your JVM—no sidecar proxy required.
+	</Card>
+	<Card title="Zero Framework Lock-in">
+		The core library has no dependency on Spring or the Servlet API. Use it standalone or with Spring Boot.
+	</Card>
+	<Card title="Proto & JSON Codecs">
+		Protobuf binary and Protobuf-JSON encoding out of the box, with gzip compression and permissive CORS.
+	</Card>
+	<Card title="Server-Streaming & Chunked Transfer">
+		Full server-streaming support delivered via chunked HTTP/1.1 transfer—requests run on virtual threads.
+	</Card>
+	<Card title="In-Process gRPC Channel">
+		Your `io.grpc.BindableService` implementations run directly in the same JVM process via an embedded Netty server.
+	</Card>
+	<Card title="Connect Error Model">
+		Full Connect error JSON (`code` / `message` / `details`), gRPC-Web trailers, and end-of-stream semantics.
+	</Card>
+</CardGrid>
+
+## Why connect-kotlin-server
+
+[`connect-kotlin`](https://github.com/connectrpc/connect-kotlin) provides a client, but the JVM has no native server-side Connect implementation. The standard workaround is to run a separate Go proxy (like [Vanguard](https://github.com/connectrpc/vanguard-go)) in front of your gRPC backend to transcode protocols—adding a network hop and operational complexity.
+
+`connect-kotlin-server` removes that hop entirely. It hosts your `io.grpc.BindableService`s on an in-process gRPC channel and serves them over Connect, Connect streaming, and gRPC-Web through an embedded Netty HTTP/1.1 server—all in the same JVM, with no proxy.
+
+## Get started
+
+- **[Getting Started](/connect-kotlin-server/getting-started/)** — Installation, quick-start examples, and requirements.
+- **[Spring Boot Guide](/connect-kotlin-server/guides/spring-boot)** — Using the Spring Boot autoconfiguration starter.
+
+> [!WARNING]
+> **Alpha.** This project is in early, active development. The public API, wire behaviour and module layout may change without notice between releases. Pin an exact version and review the release notes before upgrading.
