@@ -91,29 +91,29 @@ fun main() {
 }
 ```
 
-### With Spring Boot (no servlet container)
+### With Spring Boot
 
-The Connect server brings its own Netty transport, so the application does not need an
-embedded servlet container (`spring.main.web-application-type=none`). Wire it as a bean:
+Add the Spring starter and you write **no wiring at all**: it auto-configures the server
+from your beans and manages it through a Spring `SmartLifecycle` (started with the context,
+shut down gracefully on close). The Connect server brings its own Netty transport, so the
+application needs no servlet container (`spring.main.web-application-type=none`).
 
 ```kotlin
-@Configuration
-class ConnectServerConfiguration {
-    @Bean(destroyMethod = "close")
-    fun connectServer(
-        services: ObjectProvider<BindableService>,
-        interceptors: ObjectProvider<ServerInterceptor>,
-        @Value("\${connect.server.port:8080}") port: Int,
-    ): ConnectServer = ConnectServer(
-        services = services.orderedStream().toList(),
-        interceptors = interceptors.orderedStream().toList(),
-        config = ConnectServerConfig(port = port),
-    ).apply { start() }
+dependencies {
+    implementation("io.github.cgardev:connect-kotlin-server-spring:<commit>")
 }
 ```
 
-Any `BindableService` bean is discovered automatically; `ServerInterceptor` beans are
-applied to the in-process pipeline, exactly as a real gRPC server would.
+```kotlin
+@Component
+class EchoService : EchoServiceGrpc.EchoServiceImplBase() { /* ... */ }
+```
+
+Any `BindableService` bean is discovered and served; `ServerInterceptor` beans are applied
+to the in-process pipeline, exactly as a real gRPC server would. Everything is tunable under
+the `connect.server.*` properties (`port`, `cors.*`, `compress-min-bytes`, …).
+
+For a non-Spring application, build a [`ConnectServer`](#quick-start) directly as shown above.
 
 ## Trying the example
 
@@ -162,9 +162,10 @@ cd tools/e2e-connect-web && pnpm install && pnpm test
 ## Project layout
 
 ```
-project/lib-connect-server/   The library (published artifact). Spring-free, Servlet-free.
-project/app-server-spring/    Runnable example: a demo gRPC service served over Connect.
-build-logic/                  Gradle convention plugins.
+project/lib-connect-server/         The core library. Spring-free, Servlet-free.
+project/lib-connect-server-spring/  Spring Boot starter: auto-config + SmartLifecycle binding.
+project/app-server-spring/          Runnable example: a demo gRPC service served over Connect.
+build-logic/                        Gradle convention plugins.
 ```
 
 ## Versioning & compatibility
