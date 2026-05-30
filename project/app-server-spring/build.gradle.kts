@@ -10,9 +10,10 @@ val grpcVersion = "1.69.0"
 val protobufVersion = "4.28.3"
 
 dependencies {
-    // The Spring starter auto-configures the Connect server and manages its
-    // SmartLifecycle; it brings the core library transitively.
-    implementation(project(":project:lib-connect-server-spring"))
+    // The auto-configuration starter wires the Connect server and manages its
+    // SmartLifecycle; it brings the Spring components and the core transitively.
+    // (Import :project:lib-connect-server-spring instead to wire it manually.)
+    implementation(project(":project:lib-connect-server-spring-boot-autoconfigure"))
 
     // Core Spring Boot only — no embedded servlet container; Netty (from the
     // Connect library) is the HTTP server.

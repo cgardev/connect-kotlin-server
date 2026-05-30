@@ -93,16 +93,24 @@ fun main() {
 
 ### With Spring Boot
 
-Add the Spring starter and you write **no wiring at all**: it auto-configures the server
-from your beans and manages it through a Spring `SmartLifecycle` (started with the context,
-shut down gracefully on close). The Connect server brings its own Netty transport, so the
-application needs no servlet container (`spring.main.web-application-type=none`).
+The Spring support is split into two modules, following Spring's own `*-autoconfigure`
+convention — pick the one that matches how much wiring you want:
 
 ```kotlin
 dependencies {
-    implementation("io.github.cgardev:connect-kotlin-server-spring:<commit>")
+    // Zero wiring: auto-configures the server and registers its SmartLifecycle.
+    implementation("io.github.cgardev:connect-kotlin-server-spring-boot-autoconfigure:<commit>")
+
+    // — or — just the Spring components (ConnectServerLifecycle, ConnectServerProperties),
+    // for when you want to declare the beans yourself:
+    // implementation("io.github.cgardev:connect-kotlin-server-spring:<commit>")
 }
 ```
+
+With the auto-configuration starter you write **no wiring at all**: it builds the server
+from your beans and manages it through a Spring `SmartLifecycle` (started with the context,
+shut down gracefully on close). The Connect server brings its own Netty transport, so the
+application needs no servlet container (`spring.main.web-application-type=none`).
 
 ```kotlin
 @Component
@@ -162,10 +170,11 @@ cd tools/e2e-connect-web && pnpm install && pnpm test
 ## Project layout
 
 ```
-project/lib-connect-server/         The core library. Spring-free, Servlet-free.
-project/lib-connect-server-spring/  Spring Boot starter: auto-config + SmartLifecycle binding.
-project/app-server-spring/          Runnable example: a demo gRPC service served over Connect.
-build-logic/                        Gradle convention plugins.
+project/lib-connect-server/                          The core library. Spring-free, Servlet-free.
+project/lib-connect-server-spring/                   Spring components: SmartLifecycle + properties.
+project/lib-connect-server-spring-boot-autoconfigure/ Auto-configuration starter (depends on the above).
+project/app-server-spring/                           Runnable example: a demo service served over Connect.
+build-logic/                                         Gradle convention plugins.
 ```
 
 ## Versioning & compatibility

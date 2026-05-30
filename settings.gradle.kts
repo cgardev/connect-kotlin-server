@@ -16,3 +16,4 @@ include("project:app-server-spring")
 // Libs
 include("project:lib-connect-server")
 include("project:lib-connect-server-spring")
+include("project:lib-connect-server-spring-boot-autoconfigure")
