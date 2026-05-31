@@ -227,9 +227,23 @@ There are no tagged releases yet, so consumers use JitPack by commit (see
 
 The build is also set up to publish via `maven-publish` once releases begin: to GitHub
 Packages out of the box (CI uses the repository `GITHUB_TOKEN`), or to Maven Central under
-the `io.github.cgardev` group — whose namespace is verified by proving ownership of the
-`cgardev` GitHub account through the Sonatype Central Portal (no custom domain), plus a GPG
-signing key via the `SIGNING_KEY` / `SIGNING_PASSWORD` environment variables.
+the `io.github.cgardev` group. GitHub Packages requires consumers to authenticate, so Maven
+Central is the path for unauthenticated consumption.
+
+Maven Central publishing goes through the [Sonatype Central Portal](https://central.sonatype.com),
+which requires, as a one-time setup:
+
+1. A Central Portal account and verification of the `io.github.cgardev` namespace, done by
+   proving ownership of the `cgardev` GitHub account (no custom domain needed).
+2. A GPG signing key, with the public key uploaded to a keyserver.
+3. A Central Portal user token, plus the GPG key, added as repository secrets:
+   `CENTRAL_USERNAME`, `CENTRAL_PASSWORD`, `SIGNING_KEY`, `SIGNING_PASSWORD`.
+
+The `Publish` workflow then uploads the signed artifacts to a Central Portal staging
+deployment, which is released from the portal (or automatically, if the namespace uses
+automatic publishing). Maven Central rejects `SNAPSHOT` versions, so the publish job uses the
+short commit hash as the release version. The Maven Central step is skipped until the
+`CENTRAL_USERNAME` secret exists, so GitHub Packages publishing keeps working beforehand.
 See [`.github/workflows/publish.yml`](.github/workflows/publish.yml).
 
 ## Disclaimer

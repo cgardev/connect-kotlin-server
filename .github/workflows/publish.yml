@@ -12,6 +12,12 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Mapped at job level so the Maven Central step can guard on their presence.
+    env:
+      CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+      CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -24,10 +30,6 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # Publishes to GitHub Packages using the repository token. Publishing to
-      # Maven Central instead requires OSSRH_USERNAME / OSSRH_PASSWORD and a
-      # SIGNING_KEY / SIGNING_PASSWORD; swap the task below for
-      # publishMavenPublicationToMavenCentralRepository.
       # The commit is the version (same convention as JitPack); publish each
       # module under the short commit hash so a build is addressable by SHA.
       - name: Publish to GitHub Packages
@@ -41,3 +43,19 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Publishes the signed artifacts to a Maven Central staging deployment via the
+      # Sonatype Central Portal. Skipped until the Central Portal token secrets exist,
+      # so GitHub Packages publishing keeps working before Maven Central is set up.
+      # The staged deployment must then be released from the Central Portal (unless the
+      # namespace uses automatic publishing). Maven Central rejects SNAPSHOT versions,
+      # so the short commit hash is published as the release version.
+      - name: Publish to Maven Central
+        if: ${{ env.CENTRAL_USERNAME != '' }}
+        run: >-
+          ./gradlew
+          -Pversion="${GITHUB_SHA::7}"
+          :project:lib-connect-server:publishMavenPublicationToMavenCentralRepository
+          :project:lib-connect-server-spring:publishMavenPublicationToMavenCentralRepository
+          :project:lib-connect-server-spring-boot-autoconfigure:publishMavenPublicationToMavenCentralRepository
+          --no-daemon --stacktrace

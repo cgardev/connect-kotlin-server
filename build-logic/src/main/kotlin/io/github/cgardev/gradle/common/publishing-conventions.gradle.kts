@@ -62,15 +62,21 @@ publishing {
                     .orElse(providers.environmentVariable("GITHUB_TOKEN")).orNull
             }
         }
-        // Maven Central (Sonatype OSSRH). Requires a verified namespace + signing key.
+        // Maven Central through the Sonatype Central Portal. The portal exposes an
+        // OSSRH-compatible staging endpoint, so the standard maven-publish flow keeps
+        // working: artifacts upload to a staging deployment that is then released from
+        // the Central Portal (manually, or automatically when the namespace is set to
+        // automatic publishing). Requires a verified namespace, a Central Portal user
+        // token (CENTRAL_USERNAME / CENTRAL_PASSWORD), and a GPG signing key.
         maven {
             name = "MavenCentral"
-            val releasesUrl = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-            val snapshotsUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+            val releasesUrl =
+                uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
+            val snapshotsUrl = uri("https://central.sonatype.com/repository/maven-snapshots/")
             url = if (version.toString().endsWith("SNAPSHOT")) snapshotsUrl else releasesUrl
             credentials {
-                username = providers.environmentVariable("OSSRH_USERNAME").orNull
-                password = providers.environmentVariable("OSSRH_PASSWORD").orNull
+                username = providers.environmentVariable("CENTRAL_USERNAME").orNull
+                password = providers.environmentVariable("CENTRAL_PASSWORD").orNull
             }
         }
     }
