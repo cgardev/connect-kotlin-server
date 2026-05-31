@@ -75,10 +75,10 @@ jobs:
           --no-daemon --stacktrace
 
       # Uploading only stages the artifacts in an open repository; this turns that
-      # repository into a Central Portal deployment so it becomes visible and can be
-      # released. publishing_type=user_managed leaves the final "Publish" as a manual
-      # review step in the portal; switch to automatic to release without review.
-      - name: Promote the staging repository to a Central Portal deployment
+      # repository into a Central Portal deployment. publishing_type=automatic releases
+      # it to Maven Central once validation passes, with no manual review in the portal;
+      # switch to user_managed to require pressing "Publish" in the portal instead.
+      - name: Promote and release the staging repository to Maven Central
         if: ${{ env.CENTRAL_USERNAME != '' }}
         run: |
           set -euo pipefail
@@ -86,5 +86,5 @@ jobs:
           bearer=$(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_PASSWORD" | base64 -w0)
           curl -sS --fail-with-body -X POST \
             -H "Authorization: Bearer $bearer" \
-            "$api/manual/upload/defaultRepository/io.github.cgardev?publishing_type=user_managed" \
+            "$api/manual/upload/defaultRepository/io.github.cgardev?publishing_type=automatic" \
             -w '\nHTTP %{http_code}\n'
