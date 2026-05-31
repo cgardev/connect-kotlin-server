@@ -1,8 +1,16 @@
-# JitPack builds the requested commit so consumers can depend on it by SHA:
+# JitPack builds the requested commit so consumers can depend on each published
+# module by SHA, for example:
 #   com.github.cgardev:connect-kotlin-server:<commit>
+#   com.github.cgardev:connect-kotlin-server-spring:<commit>
+#   com.github.cgardev:connect-kotlin-server-spring-boot-autoconfigure:<commit>
 # The project needs a Java 24 toolchain, provisioned here via SDKMAN.
 before_install:
   - sdk install java 24.0.2-tem < /dev/null
   - sdk use java 24.0.2-tem
 install:
-  - ./gradlew :project:lib-connect-server:publishToMavenLocal -x test --no-daemon
+  - >-
+    ./gradlew
+    :project:lib-connect-server:publishToMavenLocal
+    :project:lib-connect-server-spring:publishToMavenLocal
+    :project:lib-connect-server-spring-boot-autoconfigure:publishToMavenLocal
+    -x test --no-daemon
