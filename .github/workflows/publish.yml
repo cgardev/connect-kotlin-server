@@ -29,7 +29,12 @@ jobs:
       # SIGNING_KEY / SIGNING_PASSWORD; swap the task below for
       # publishMavenPublicationToMavenCentralRepository.
       - name: Publish to GitHub Packages
-        run: ./gradlew :project:lib-connect-server:publishMavenPublicationToGitHubPackagesRepository --no-daemon --stacktrace
+        run: >-
+          ./gradlew
+          :project:lib-connect-server:publishMavenPublicationToGitHubPackagesRepository
+          :project:lib-connect-server-spring:publishMavenPublicationToGitHubPackagesRepository
+          :project:lib-connect-server-spring-boot-autoconfigure:publishMavenPublicationToGitHubPackagesRepository
+          --no-daemon --stacktrace
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
