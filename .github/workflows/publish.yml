@@ -44,12 +44,26 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Publishes the signed artifacts to a Maven Central staging deployment via the
+      # Drop any staging repository left open by a previous run so the deployment
+      # promoted below contains only this run's artifacts. Best effort: a missing or
+      # differently shaped response simply leaves nothing to drop.
+      - name: Reset open Central staging repositories
+        if: ${{ env.CENTRAL_USERNAME != '' }}
+        run: |
+          set -euo pipefail
+          api="https://ossrh-staging-api.central.sonatype.com"
+          bearer=$(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_PASSWORD" | base64 -w0)
+          repositories=$(curl -sS -H "Authorization: Bearer $bearer" "$api/manual/search/repositories?state=open" || echo '{}')
+          echo "$repositories" | jq -r '.repositories[]?.key // empty' | while read -r key; do
+            echo "Dropping stale open staging repository: $key"
+            curl -sS -X POST -H "Authorization: Bearer $bearer" "$api/manual/drop/repository/$key" || true
+          done
+
+      # Uploads the signed artifacts to a Maven Central staging repository through the
       # Sonatype Central Portal. Skipped until the Central Portal token secrets exist,
       # so GitHub Packages publishing keeps working before Maven Central is set up.
-      # The staged deployment must then be released from the Central Portal (unless the
-      # namespace uses automatic publishing). Maven Central rejects SNAPSHOT versions,
-      # so the short commit hash is published as the release version.
+      # Maven Central rejects SNAPSHOT versions, so the short commit hash is published
+      # as the release version.
       - name: Publish to Maven Central
         if: ${{ env.CENTRAL_USERNAME != '' }}
         run: >-
@@ -59,3 +73,18 @@ jobs:
           :project:lib-connect-server-spring:publishMavenPublicationToMavenCentralRepository
           :project:lib-connect-server-spring-boot-autoconfigure:publishMavenPublicationToMavenCentralRepository
           --no-daemon --stacktrace
+
+      # Uploading only stages the artifacts in an open repository; this turns that
+      # repository into a Central Portal deployment so it becomes visible and can be
+      # released. publishing_type=user_managed leaves the final "Publish" as a manual
+      # review step in the portal; switch to automatic to release without review.
+      - name: Promote the staging repository to a Central Portal deployment
+        if: ${{ env.CENTRAL_USERNAME != '' }}
+        run: |
+          set -euo pipefail
+          api="https://ossrh-staging-api.central.sonatype.com"
+          bearer=$(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_PASSWORD" | base64 -w0)
+          curl -sS --fail-with-body -X POST \
+            -H "Authorization: Bearer $bearer" \
+            "$api/manual/upload/defaultRepository/io.github.cgardev?publishing_type=user_managed" \
+            -w '\nHTTP %{http_code}\n'
