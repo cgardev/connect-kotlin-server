@@ -240,10 +240,11 @@ which requires, as a one-time setup:
    `CENTRAL_USERNAME`, `CENTRAL_PASSWORD`, `SIGNING_KEY`, `SIGNING_PASSWORD`.
 
 The `Publish` workflow then uploads the signed artifacts to a Central Portal staging
-deployment, which is released from the portal (or automatically, if the namespace uses
-automatic publishing). Maven Central rejects `SNAPSHOT` versions, so the publish job uses the
-short commit hash as the release version. The Maven Central step is skipped until the
-`CENTRAL_USERNAME` secret exists, so GitHub Packages publishing keeps working beforehand.
+deployment and promotes it with `publishing_type=automatic`, so it is released to Maven
+Central once validation passes, without manual review in the portal. Maven Central rejects
+`SNAPSHOT` versions, so the publish job uses the short commit hash as the release version.
+The Maven Central step is skipped until the `CENTRAL_USERNAME` secret exists, so GitHub
+Packages publishing keeps working beforehand.
 See [`.github/workflows/publish.yml`](.github/workflows/publish.yml).
 
 ## Disclaimer
