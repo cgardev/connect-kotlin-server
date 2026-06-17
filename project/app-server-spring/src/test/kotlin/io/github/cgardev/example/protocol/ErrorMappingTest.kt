@@ -80,4 +80,23 @@ class ErrorMappingTest : ProtocolTestSupport() {
         assertEquals(501, response.statusCode())
         assertEquals("unimplemented", mapper.readTree(response.body()).get("code").asText())
     }
+
+    @BothServices
+    fun `a unary error response still carries the CORS header`(service: String) {
+        val response = post(
+            service,
+            "Fail",
+            "application/json",
+            """{"reason":"boom"}""".toByteArray(),
+            mapOf("Origin" to "https://app.example.com"),
+        )
+
+        // The error path resets the response before writing the body; the cross-origin
+        // header must survive so a browser surfaces the real status instead of a CORS error.
+        assertEquals(400, response.statusCode())
+        assertEquals(
+            "*",
+            response.headers().firstValue("access-control-allow-origin").orElse(null),
+        )
+    }
 }
